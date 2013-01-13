@@ -54,10 +54,15 @@ public class HttpClient {
 		cookies = new HashMap<String, String>();
 	}
 	
+
 	/**
-	 * connect & request server
+	 * request.
+	 * @param isSynchronousMode
+	 * @param receiver
+	 * @return if isSynchronousMode is true and the request processed successfully, returns HttpResponse instance, otherwise null; 
 	 */
-	public void request(final MessageReceiver receiver, boolean isSynchronousMode) {
+	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver) {
+		
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 		String host = uri.getHost() == null ? "localhost" : uri.getHost();
 
@@ -72,7 +77,7 @@ public class HttpClient {
 		
 		if(!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https")) {
 			logger.error("Only HTTP(S) is supported.");
-			return;
+			return null;
 		}
 		
 		final ClientBootstrap bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(Executors.newCachedThreadPool()
@@ -81,7 +86,8 @@ public class HttpClient {
 //		final boolean isSsl = scheme.equalsIgnoreCase("https");
 
 		final HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
-
+		final HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
+		
 		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
 
 			@Override
@@ -98,7 +104,7 @@ public class HttpClient {
 				
 				pipeline.addLast("codec", new HttpClientCodec());
 				pipeline.addLast("inflateer", new HttpContentDecompressor());
-				pipeline.addLast("handler", new HttpClientHandler(receiver, request));
+				pipeline.addLast("handler", clientHandler);
 				return pipeline;
 			}
 		});
@@ -109,7 +115,7 @@ public class HttpClient {
 		if(!future.isSuccess()) {
 			logger.error("connection failed.", future.getCause());
 			bootstrap.releaseExternalResources();
-			return;
+			return null;
 		}
 		
 		channel = future.awaitUninterruptibly().getChannel();
@@ -141,13 +147,17 @@ public class HttpClient {
 		
 		channel.write(request);
 		
-		if(isSynchronousMode) {
-			try {
-				channel.getCloseFuture().await();
-			} 
-			catch (InterruptedException e) {
-				logger.error("waiting interrupted.", e);
-			}
+		if(isSynchronousMode == false) {
+			return null;
+		}
+		
+		try {
+			channel.getCloseFuture().await();
+			return clientHandler.getResponse();
+		} 
+		catch (InterruptedException e) {
+			logger.error("waiting interrupted.", e);
+			return null;
 		}
 	}
 	
@@ -173,6 +183,11 @@ public class HttpClient {
 		return cookies;
 	}
 
+	public void addParameter(String key, String value) {
+		//TODO implement setParameters
+		
+	}
+	
 	/**
 	 * @author anyflow
 	 *
@@ -182,17 +197,22 @@ public class HttpClient {
 		private boolean readingChunks;
 		private MessageReceiver receiver;
 		private HttpRequest request;
+		private HttpResponse response;
 		
 		public HttpClientHandler(MessageReceiver receiver, HttpRequest request) {
 			this.receiver = receiver;
 			this.request = request;
 		}
 		
+		public HttpResponse getResponse() {
+			return response;
+		}
+		
 		//TODO chunk mode handling.. especially, receiver.messageReceived.
 		@Override
 		public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 			if(!readingChunks) {
-				HttpResponse response = (HttpResponse) e.getMessage();
+				response = (HttpResponse) e.getMessage();
 				
 				logger.info("STATUS : " + response.getStatus());
 				logger.info("VERSION : " + response.getProtocolVersion());
@@ -216,6 +236,8 @@ public class HttpClient {
 						logger.info(content.toString(CharsetUtil.UTF_8));
 						logger.info("} END OF CONTENT");
 					}
+					
+					if(receiver == null) { return; }
 					
 					receiver.messageReceived(request, response);
 				}

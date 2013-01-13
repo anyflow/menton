@@ -27,11 +27,11 @@ public class AvroServer {
 	private AvroServer() {
 	}
 	
-	public static void start(Responder responder, String hostAddress) throws DefaultException {
-		start(responder, hostAddress, Configurator.getAvroPort());
+	public static void start(Responder responder) throws DefaultException {
+		start(responder, Configurator.getAvroPort());
 	}
 	
-	public static void start(Responder responder, String hostAddress, int port) {
+	public static void start(Responder responder, int port) {
 		if(instance == null) {
 			instance = new AvroServer();
 		}
@@ -39,7 +39,7 @@ public class AvroServer {
 		ExecutorService executor = Executors.newCachedThreadPool();
 		
 		instance.server = new NettyServer(responder
- 					    , new InetSocketAddress(hostAddress, port)
+ 					    , new InetSocketAddress(port)
 					    , new NioServerSocketChannelFactory(executor
 					    								  , executor)
 					    , new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(16, 1048576, 1048576)));
