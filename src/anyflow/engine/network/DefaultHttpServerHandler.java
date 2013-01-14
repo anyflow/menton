@@ -1,5 +1,6 @@
 package anyflow.engine.network;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Set;
@@ -28,13 +29,45 @@ import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.util.CharsetUtil;
+import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import anyflow.engine.network.exception.DefaultException;
 
 
 public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 	
 	private static final Logger logger = LoggerFactory.getLogger(DefaultHttpServerHandler.class);
+	
+	private Class<? extends Service> findService(String serviceName) {
+
+		Reflections reflections = null;
+		
+		try {
+			reflections = new Reflections(Configurator.getServicePackageName());
+		}
+		catch (DefaultException e) {
+			logger.error("Failed to get service package name.", e);
+			return null;
+		}
+		
+		Set<Class<? extends Service>> services = reflections.getSubTypesOf(Service.class);
+		
+		for(Class<? extends Service> item : services) {
+			
+			BusinessLogic bl = item.getAnnotation(BusinessLogic.class);
+			
+			if(bl == null || bl.name().equalsIgnoreCase(serviceName) == false) { 
+				continue; 
+			}
+			
+			return item;
+		}
+		
+		logger.error("Failed to find service.");
+		return null;
+	}
 	
     public void messageReceived(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
     	
@@ -59,13 +92,14 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 					String[] tokens = uri.getPath().split("/");
 					
 			    	if(tokens.length == 3) { // in case of '/noun/verb'
-			    		
+			    	
 			    		//validate noun(token[1]) and get the instance.
-			    		Service service = (Service) Class.forName(Configurator.getServicePackageName() + "." + tokens[1]).newInstance();
+			    		Class<? extends Service> serviceClass = findService(tokens[1]); 
 			    		
 			    		//validate verb(tokens[2]) and get the method
-			    		Method method = service.getClass().getMethod(tokens[2], (Class<?>[])null);
+			    		Method method = serviceClass.getMethod(tokens[2], (Class<?>[])null);
 			    		
+			    		Service service = serviceClass.newInstance();
 			    		service.initialize(request, response);
 			    		
 			    		content = (String)method.invoke(service, (Object[])null);
@@ -74,18 +108,10 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 			    		response.setStatus(HttpResponseStatus.NOT_FOUND);
 			    		logger.info("unexcepted URI : {}", request.getUri().toString(), e);
 		    		}
-				} 
-				catch(ClassNotFoundException e) {
-					response.setStatus(HttpResponseStatus.NOT_FOUND);
-					logger.info("unexcepted URI : {}", request.getUri().toString(), e);
-				} 
+				}
 				catch(NoSuchMethodException e) {
 					response.setStatus(HttpResponseStatus.NOT_FOUND);
 					logger.info("unexcepted URI : {}", request.getUri().toString(), e);
-				} 
-				catch(Exception e) {
-					response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-					logger.error("unknown exception throwned.", e);
 				} 
 				finally {
 					return content;

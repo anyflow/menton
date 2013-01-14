@@ -24,6 +24,13 @@
             <artifactId>avro-ipc</artifactId>
             <version>1.7.0</version>
         </dependency>
+        
+        <dependency>
+        	<groupId>org.reflections</groupId>
+        	<artifactId>reflections-maven</artifactId>
+        	<version>0.9.8</version>
+        	<type>maven-plugin</type>
+        </dependency>
     </dependencies>
       
 
