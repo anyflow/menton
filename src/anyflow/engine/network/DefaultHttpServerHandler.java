@@ -61,7 +61,6 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 			    	if(tokens.length == 3) { // in case of '/noun/verb'
 			    		
 			    		//validate noun(token[1]) and get the instance.
-			    		logger.debug(Configurator.getServicePackageName());
 			    		Service service = (Service) Class.forName(Configurator.getServicePackageName() + "." + tokens[1]).newInstance();
 			    		
 			    		//validate verb(tokens[2]) and get the method
