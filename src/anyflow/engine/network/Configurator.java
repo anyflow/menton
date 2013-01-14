@@ -53,6 +53,15 @@ public class Configurator {
 	}
 	
 	/**
+	 * @return Service package name
+	 * @throws DefaultException
+	 */
+	public static String getServicePackageName() throws DefaultException {
+		if(configuration == null) { throw new DefaultException("Configurator.configure should be called before this."); } 
+		
+		return configuration.getProperty("httpServer.servicePackageName", "package name was not found");
+	}
+	/**
 	 * @return http port
 	 * @throws DefaultException
 	 */
