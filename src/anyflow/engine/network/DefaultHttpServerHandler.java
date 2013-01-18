@@ -1,6 +1,6 @@
 package anyflow.engine.network;
 
-import java.lang.reflect.Method;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Set;
@@ -26,16 +26,15 @@ import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.util.CharsetUtil;
+
 import org.reflections.Reflections;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import anyflow.engine.network.exception.DefaultException;
 
 
 public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 	
-	private static final Logger logger = LoggerFactory.getLogger(DefaultHttpServerHandler.class);
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultHttpServerHandler.class);
 	
 	private Class<? extends RequestHandler> findRequestHandler(String requestedPath) {
 
@@ -122,6 +121,11 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 				catch (IllegalAccessException e) {
 					response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 		    		logger.error("Generating new request handler instance failed.", e);
+		    		content = null;
+				}
+				catch(Exception e) {
+					response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+		    		logger.error("Unknown exception was thrown", e);
 		    		content = null;
 				}
 				
