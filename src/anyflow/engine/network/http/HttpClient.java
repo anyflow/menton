@@ -1,7 +1,7 @@
 /**
  * 
  */
-package anyflow.engine.network;
+package anyflow.engine.network.http;
 
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;

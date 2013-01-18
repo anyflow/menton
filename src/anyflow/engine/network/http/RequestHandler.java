@@ -1,4 +1,4 @@
-package anyflow.engine.network;
+package anyflow.engine.network.http;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -1,4 +1,4 @@
-package anyflow.engine.network;
+package anyflow.engine.network.avro;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
@@ -13,6 +13,7 @@ import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import anyflow.engine.network.Configurator;
 import anyflow.engine.network.exception.DefaultException;
 
 

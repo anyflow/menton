@@ -1,4 +1,4 @@
-package anyflow.engine.network;
+package anyflow.engine.network.http;
 
 
 import java.net.URI;
@@ -29,6 +29,7 @@ import org.jboss.netty.util.CharsetUtil;
 
 import org.reflections.Reflections;
 
+import anyflow.engine.network.Configurator;
 import anyflow.engine.network.exception.DefaultException;
 
 

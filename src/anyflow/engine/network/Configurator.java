@@ -53,7 +53,7 @@ public class Configurator {
 	}
 	
 	/**
-	 * @return Service package name
+	 * @return Request Handler Package root name
 	 * @throws DefaultException
 	 */
 	public static String getRequestHandlerPackageRoot() throws DefaultException {
