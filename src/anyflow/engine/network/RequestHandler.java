@@ -1,5 +1,9 @@
 package anyflow.engine.network;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Map;
 
@@ -16,9 +20,9 @@ import org.slf4j.LoggerFactory;
  * @author anyflow
  * Base class for business logic. The class contains common stuffs for generating business logic.
  */
-public class Service {
+public abstract class RequestHandler {
 
-	private static final Logger logger = LoggerFactory.getLogger(Service.class);
+	private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
 	
 	private HttpRequest request;
 	private HttpResponse response;
@@ -76,5 +80,20 @@ public class Service {
         }
         
         return params.get(key).get(0);
+	}
+	
+	public abstract String call();
+	
+	/**
+	 * @author anyflow
+	 *
+	 */
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.TYPE)
+	public @interface Handles {
+		/**
+		 * @return requested path
+		 */
+		String[] path();
 	}
 }

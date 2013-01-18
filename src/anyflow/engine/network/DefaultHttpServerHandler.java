@@ -2,6 +2,7 @@ package anyflow.engine.network;
 
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -36,32 +37,39 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 	
 	private static final Logger logger = LoggerFactory.getLogger(DefaultHttpServerHandler.class);
 	
-	private Class<? extends Service> findService(String serviceName) {
+	private Class<? extends RequestHandler> findRequestHandler(String requestedPath) {
 
 		Reflections reflections = null;
 		
 		try {
-			reflections = new Reflections(Configurator.getServicePackageName());
+			reflections = new Reflections(Configurator.getRequestHandlerPackageRoot());
 		}
 		catch (DefaultException e) {
 			logger.error("Failed to get service package name.", e);
 			return null;
 		}
 		
-		Set<Class<? extends Service>> services = reflections.getSubTypesOf(Service.class);
+		Set<Class<? extends RequestHandler>> services = reflections.getSubTypesOf(RequestHandler.class);
 		
-		for(Class<? extends Service> item : services) {
+		for(Class<? extends RequestHandler> item : services) {
 			
-			BusinessLogic bl = item.getAnnotation(BusinessLogic.class);
+			RequestHandler.Handles bl = item.getAnnotation(RequestHandler.Handles.class);
 			
-			if(bl == null || bl.name().equalsIgnoreCase(serviceName) == false) { 
+			if(bl == null) { 
 				continue; 
 			}
 			
-			return item;
+			for(String path : bl.path()) {
+				if(path.equalsIgnoreCase(requestedPath)) { 
+					return item;
+				}
+				else {
+					continue;
+				}
+			}
 		}
 		
-		logger.error("Failed to find service.");
+		logger.error("Failed to find requestHandler.");
 		return null;
 	}
 	
@@ -74,44 +82,51 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         Future<String> future = executorService.submit(new Callable<String>() {
 
-			@SuppressWarnings("finally")
 			@Override
 			public String call() 
 			{
 				logger.info(request.getUri().toString() + " requested.");
 								
 				String content = null;
+				
 				try {
-					URI uri = new URI(request.getUri());
-							
-//			    	String[] tokens = request.getUri().split("\\?")[0].split("/");
-					String[] tokens = uri.getPath().split("/");
+					String path = (new URI(request.getUri())).getPath();
 					
-			    	if(tokens.length == 3) { // in case of '/noun/verb'
-			    	
-			    		//validate noun(token[1]) and get the instance.
-			    		Class<? extends Service> serviceClass = findService(tokens[1]); 
-			    		
-			    		//validate verb(tokens[2]) and get the method
-			    		Method method = serviceClass.getMethod(tokens[2], (Class<?>[])null);
-			    		
-			    		Service service = serviceClass.newInstance();
-			    		service.initialize(request, response);
-			    		
-			    		content = (String)method.invoke(service, (Object[])null);
-			    	} 
-			    	else {
+					Class<? extends RequestHandler> handlerClass = findRequestHandler(path);
+					
+					if(handlerClass == null) {
 			    		response.setStatus(HttpResponseStatus.NOT_FOUND);
 			    		logger.info("unexcepted URI : {}", request.getUri().toString(), e);
-		    		}
+			    		
+			    		return "Failed to find the request handler.";
+					}
+					else {
+						RequestHandler handler = handlerClass.newInstance();
+						
+						handler.initialize(request, response);
+						
+						content = handler.call();
+					}
+
 				}
-				catch(NoSuchMethodException e) {
-					response.setStatus(HttpResponseStatus.NOT_FOUND);
-					logger.info("unexcepted URI : {}", request.getUri().toString(), e);
-				} 
-				finally {
-					return content;
+				catch (URISyntaxException e1) {
+		    		response.setStatus(HttpResponseStatus.NOT_FOUND);
+		    		logger.info("unexcepted URI : {}", request.getUri().toString(), e);
+		    		content = null;
 				}
+				catch (InstantiationException e) {
+					response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+		    		logger.error("Generating new request handler instance failed.", e);
+		    		content = null;
+				}
+				catch (IllegalAccessException e) {
+					response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+		    		logger.error("Generating new request handler instance failed.", e);
+		    		content = null;
+				}
+				
+				return content;
+				
 			}
         });
         
