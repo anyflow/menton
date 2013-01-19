@@ -92,8 +92,14 @@ public abstract class RequestHandler {
 	@Target(ElementType.TYPE)
 	public @interface Handles {
 		/**
-		 * @return requested path
+		 * @return supported paths
 		 */
-		String[] path();
+		String[] paths();
+		
+		/**
+		 * supported http methods
+		 * @return
+		 */
+		String[] httpMethods();
 	}
 }

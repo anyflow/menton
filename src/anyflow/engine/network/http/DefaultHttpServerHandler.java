@@ -37,7 +37,7 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 	
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultHttpServerHandler.class);
 	
-	private Class<? extends RequestHandler> findRequestHandler(String requestedPath) {
+	private Class<? extends RequestHandler> findRequestHandler(String requestedPath, String httpMethod) {
 
 		Reflections reflections = null;
 		
@@ -59,11 +59,18 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 				continue; 
 			}
 			
-			for(String path : bl.path()) {
-				if(path.equalsIgnoreCase(requestedPath)) { 
-					return item;
+			for(String method : bl.httpMethods()) {
+				if(method.equalsIgnoreCase(httpMethod)) {
+					for(String path : bl.paths()) {
+						if(path.equalsIgnoreCase(requestedPath)) { 
+							return item;
+						}
+						else {
+							continue;
+						}
+					}
 				}
-				else {
+				else { 
 					continue;
 				}
 			}
@@ -91,8 +98,8 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 				
 				try {
 					String path = (new URI(request.getUri())).getPath();
-					
-					Class<? extends RequestHandler> handlerClass = findRequestHandler(path);
+
+					Class<? extends RequestHandler> handlerClass = findRequestHandler(path, request.getMethod().toString());
 					
 					if(handlerClass == null) {
 			    		response.setStatus(HttpResponseStatus.NOT_FOUND);
