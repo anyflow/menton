@@ -36,49 +36,7 @@ import anyflow.engine.network.exception.DefaultException;
 public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 	
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultHttpServerHandler.class);
-	
-	private Class<? extends RequestHandler> findRequestHandler(String requestedPath, String httpMethod) {
 
-		Reflections reflections = null;
-		
-		try {
-			reflections = new Reflections(Configurator.getRequestHandlerPackageRoot());
-		}
-		catch (DefaultException e) {
-			logger.error("Failed to get service package name.", e);
-			return null;
-		}
-		
-		Set<Class<? extends RequestHandler>> services = reflections.getSubTypesOf(RequestHandler.class);
-		
-		for(Class<? extends RequestHandler> item : services) {
-			
-			RequestHandler.Handles bl = item.getAnnotation(RequestHandler.Handles.class);
-			
-			if(bl == null) { 
-				continue; 
-			}
-			
-			for(String method : bl.httpMethods()) {
-				if(method.equalsIgnoreCase(httpMethod)) {
-					for(String path : bl.paths()) {
-						if(path.equalsIgnoreCase(requestedPath)) { 
-							return item;
-						}
-						else {
-							continue;
-						}
-					}
-				}
-				else { 
-					continue;
-				}
-			}
-		}
-		
-		logger.error("Failed to find requestHandler.");
-		return null;
-	}
 	
     public void messageReceived(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
     	
@@ -99,7 +57,7 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 				try {
 					String path = (new URI(request.getUri())).getPath();
 
-					Class<? extends RequestHandler> handlerClass = findRequestHandler(path, request.getMethod().toString());
+					Class<? extends RequestHandler> handlerClass = RequestHandler.find(path, request.getMethod().toString());
 					
 					if(handlerClass == null) {
 			    		response.setStatus(HttpResponseStatus.NOT_FOUND);

@@ -80,4 +80,20 @@ public class Configurator {
 		
 		return Integer.parseInt(configuration.getProperty("avroServer.port", "9090"));
 	}
+	
+	/**
+	 * @return context root path
+	 * @throws DefaultException
+	 */
+	public static String getHttpContextRoot() throws DefaultException {
+		if(configuration == null) { throw new DefaultException("Configurator.configure should be called before this."); } 
+		
+		String ret = configuration.getProperty("httpServer.contextRoot", "/");
+		
+		if(ret.equalsIgnoreCase("") || ret.charAt(ret.length() - 1) != '/') {
+			ret += "/";
+		}
+		
+		return ret;
+	}
 }

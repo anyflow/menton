@@ -6,6 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
@@ -13,8 +14,12 @@ import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.QueryStringDecoder;
 import org.jboss.netty.util.CharsetUtil;
+import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import anyflow.engine.network.Configurator;
+import anyflow.engine.network.exception.DefaultException;
 
 /**
  * @author anyflow
@@ -82,6 +87,9 @@ public abstract class RequestHandler {
         return params.get(key).get(0);
 	}
 	
+	/**
+	 * @return processed content string
+	 */
 	public abstract String call();
 	
 	/**
@@ -98,8 +106,54 @@ public abstract class RequestHandler {
 		
 		/**
 		 * supported http methods
-		 * @return
+		 * @return http method string
 		 */
 		String[] httpMethods();
+	}
+	
+	/**
+	 * @param requestedPath
+	 * @param httpMethod
+	 * @return
+	 * @throws DefaultException
+	 */
+	public static Class<? extends RequestHandler> find(String requestedPath, String httpMethod) throws DefaultException {
+
+		Reflections reflections = new Reflections(Configurator.getRequestHandlerPackageRoot());
+		String contextRoot = Configurator.getHttpContextRoot();
+		
+		Set<Class<? extends RequestHandler>> requestHandler = reflections.getSubTypesOf(RequestHandler.class);
+		
+		for(Class<? extends RequestHandler> item : requestHandler) {
+			
+			RequestHandler.Handles bl = item.getAnnotation(RequestHandler.Handles.class);
+			
+			if(bl == null) { 
+				continue; 
+			}
+			
+			for(String method : bl.httpMethods()) {
+				if(method.equalsIgnoreCase(httpMethod) == false) {
+					continue;
+				}
+				
+				for(String rawPath : bl.paths()) {
+					
+					String path = (rawPath.charAt(0) == '/')
+							    ? rawPath
+							    : contextRoot + rawPath;
+					
+					if(requestedPath.equalsIgnoreCase(path)) { 
+						return item;
+					}
+					else {
+						continue;
+					}
+				}
+			}
+		}
+		
+		logger.error("Failed to find requestHandler.");
+		return null;
 	}
 }
