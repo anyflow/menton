@@ -6,7 +6,6 @@ package anyflow.engine.network.http;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
@@ -63,13 +62,26 @@ public class HttpClient {
 	}
 	
 	/**
-	 * request.
+	 * Request with encoding utf-8
 	 * @param isSynchronousMode
 	 * @param receiver
 	 * @return if isSynchronousMode is true and the request processed successfully, returns HttpResponse instance, otherwise null; 
 	 * @throws DefaultException 
+	 * @throws UnsupportedEncodingException 
 	 */
-	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver) throws DefaultException {
+	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver) throws DefaultException, UnsupportedEncodingException {
+		return request(isSynchronousMode, receiver, "utf-8");
+	}
+	/**
+	 * request.
+	 * @param isSynchronousMode
+	 * @param receiver
+	 * @param queryEncodingCharset query encoding charset. if it is null, no encoding will be applied.
+	 * @return if isSynchronousMode is true and the request processed successfully, returns HttpResponse instance, otherwise null; 
+	 * @throws DefaultException 
+	 * @throws UnsupportedEncodingException 
+	 */
+	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
 		
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
@@ -108,6 +120,20 @@ public class HttpClient {
 				return pipeline;
 			}
 		});
+
+		setHeaders(request);
+		addParameters(request, queryEncodingCharset);
+	
+		logger.info("[request] URI : {}", request.getUri());
+		logger.info("[request] CONTENT : {}", request.getContent().toString(CharsetUtil.UTF_8));
+		logger.info("[request] HTTPMETHOD : {}", request.getMethod().toString());
+		if(!request.getHeaderNames().isEmpty()) {
+			for(String name : request.getHeaderNames()) {
+				for(String value : request.getHeaders(name)) {
+					logger.info("[request] HEADER : " + name + " = " + value);
+				}
+			}
+		}
 		
 		ChannelFuture future = bootstrap.connect(new InetSocketAddress(uri.getHost(), getPort()));
 		
@@ -133,19 +159,6 @@ public class HttpClient {
 				}).start();
 			}
 		});
-
-		setHeaders(request);
-		addParameters(request);
-	
-		logger.info("[request] uri : {}", request.getUri());
-		logger.info("[request] content : {}", request.getContent().toString(CharsetUtil.UTF_8));
-		if(!request.getHeaderNames().isEmpty()) {
-			for(String name : request.getHeaderNames()) {
-				for(String value : request.getHeaders(name)) {
-					logger.info("[request] HEADER : " + name + " = " + value);
-				}
-			}
-		}
 		
 		channel.write(request);
 		
@@ -185,8 +198,9 @@ public class HttpClient {
 		String host = uri.getHost() == null ? "localhost" : uri.getHost();
 
 		request.setHeader(HttpHeaders.Names.HOST, host);
-		request.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+		request.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		request.setHeader(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
+		request.setHeader(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
 		
 		CookieEncoder httpCookieEncoder = new CookieEncoder(false);
 		
@@ -199,14 +213,15 @@ public class HttpClient {
 	/**
 	 * @param request
 	 * @throws DefaultException
+	 * @throws UnsupportedEncodingException 
 	 */
-	private void addParameters(HttpRequest request) throws DefaultException {
+	private void addParameters(HttpRequest request, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
 		
 		String address = uri.getScheme() 
 					   + "://" 
-				       + uri.getAuthority() 
-				       + ":" 
-				       + Integer.toString(getPort()) 
+				       + uri.getAuthority()
+				       + ":"
+				       + getPort()
 				       + uri.getPath();
 		
 		if(httpMethod == HttpMethod.GET) {
@@ -223,26 +238,30 @@ public class HttpClient {
 			}
 			
 			if(parameters.size() > 0) {
-				address += "?" + getParametersWithEncoding();
+				address += "?" + getParametersString(queryEncodingCharset);
 			}
 		}
 		else if(httpMethod == HttpMethod.POST) {
 			request.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/x-www-form-urlencoded");
 			
 			if(parameters.size() > 0) {
-				request.setContent(ChannelBuffers.copiedBuffer(getParametersWithEncoding(), Charset.forName("UTF-8")));
+				String paramsString = getParametersString(queryEncodingCharset);
+				
+				Charset charset = queryEncodingCharset == null
+						        ? Charset.defaultCharset()
+						        : Charset.forName(queryEncodingCharset);
+						        
+				ChannelBuffer cb = ChannelBuffers.copiedBuffer(paramsString, charset);
+				
+				request.setHeader(HttpHeaders.Names.CONTENT_LENGTH, cb.readableBytes());
+				request.setContent(cb);
 			}
 		}
 		else {
 			throw new DefaultException("only GET/POST methods are supported.");
 		}
 		
-		try {
-			request.setUri(URLEncoder.encode(address, "UTF-8"));
-		}
-		catch (UnsupportedEncodingException e) {
-			logger.error("", e);
-		}
+		request.setUri(address);
 	}
 	
 	/**
@@ -282,24 +301,25 @@ public class HttpClient {
 		return parameters;
 	}
 	
-	private String getParametersWithEncoding() {
+	private String getParametersString(String queryEncodingCharset) throws UnsupportedEncodingException {
 		if(parameters.size() <= 0) {
 			return "";
 		}
 		
-		String query = "";
-			
-		for(Map.Entry<String, String> item : parameters.entrySet()) {
-			query += item.getKey() + "=" + item.getValue();  
-		}
+		StringBuilder query = new StringBuilder();
+		String value = null;
 		
-		try {
-			return URLEncoder.encode(query, "UTF-8");
+		for(Map.Entry<String, String> item : parameters.entrySet()) {
+		
+			value = queryEncodingCharset != null
+			      ? java.net.URLEncoder.encode(item.getValue(), queryEncodingCharset)
+			      : item.getValue();
+			      
+			query = query.append(item.getKey()).append("=").append(value).append("&");  
 		}
-		catch (UnsupportedEncodingException e) {
-			logger.error("", e);
-			return null;
-		}
+
+		query = query.deleteCharAt(query.length() - 1);
+		return query.toString();
 	}
 	
 	/**

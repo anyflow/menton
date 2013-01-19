@@ -6,6 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.jboss.netty.handler.codec.http.HttpHeaders;
@@ -31,10 +32,13 @@ public abstract class RequestHandler {
 	
 	private HttpRequest request;
 	private HttpResponse response;
+	private Map<String, List<String>> parameters;
 	
 	public void initialize(HttpRequest request, HttpResponse response) {
 		this.request = request;
 		this.response = response;
+		
+		parseParameters();
 	}
 
 	public HttpRequest getRequest() {
@@ -61,7 +65,7 @@ public abstract class RequestHandler {
 		return HttpHeaders.getHost(request, "unknown"); 
 	}
 	
-	public String getParameter(String key) {
+	private void parseParameters() {
 		String httpMethod = request.getMethod().toString();
 		String queryStringParam = null;
 		
@@ -79,12 +83,15 @@ public abstract class RequestHandler {
         
         QueryStringDecoder queryStringDecoder = new QueryStringDecoder(queryStringParam);
         
-        final Map<String, List<String>> params = queryStringDecoder.getParameters();
-        if(params.containsKey(key) == false) { 
-        	return null;  
-        }
-        
-        return params.get(key).get(0);
+        parameters = queryStringDecoder.getParameters();
+	}
+	
+	public String getParameter(String key) {
+		return parameters.get(key).get(0);
+	}
+	
+	public List<String> getArrayParameter(String key) {
+		return parameters.get(key);
 	}
 	
 	/**
