@@ -87,7 +87,12 @@ public abstract class RequestHandler {
 	}
 	
 	public String getParameter(String key) {
-		return parameters.get(key).get(0);
+		if(parameters.containsKey(key)) {
+			return parameters.get(key).get(0);
+		}
+		else {
+			return "";
+		}
 	}
 	
 	public List<String> getArrayParameter(String key) {
