@@ -4,6 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -96,7 +97,12 @@ public abstract class RequestHandler {
 	}
 	
 	public List<String> getArrayParameter(String key) {
-		return parameters.get(key);
+		if(parameters.containsKey(key)) {
+			return parameters.get(key);
+		}
+		else {
+			return (List<String>)(new ArrayList<String>());
+		}
 	}
 	
 	/**
