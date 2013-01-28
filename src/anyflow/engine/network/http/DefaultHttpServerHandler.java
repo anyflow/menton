@@ -27,11 +27,6 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.util.CharsetUtil;
 
-import org.reflections.Reflections;
-
-import anyflow.engine.network.Configurator;
-import anyflow.engine.network.exception.DefaultException;
-
 
 public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 	

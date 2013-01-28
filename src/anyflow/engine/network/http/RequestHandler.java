@@ -7,7 +7,6 @@ import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.jboss.netty.handler.codec.http.HttpHeaders;
