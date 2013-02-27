@@ -1,11 +1,12 @@
 /**
  * 
  */
-package anyflow.engine.network;
+package net.anyflow.network;
 
 import java.net.URISyntaxException;
 
-import anyflow.engine.network.exception.DefaultException;
+import net.anyflow.network.exception.DefaultException;
+
 
 /**
  * @author anyflow

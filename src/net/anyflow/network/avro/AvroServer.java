@@ -1,8 +1,11 @@
-package anyflow.engine.network.avro;
+package net.anyflow.network.avro;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import net.anyflow.network.Configurator;
+import net.anyflow.network.exception.DefaultException;
 
 import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Responder;
@@ -13,8 +16,6 @@ import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import anyflow.engine.network.Configurator;
-import anyflow.engine.network.exception.DefaultException;
 
 
 public class AvroServer {

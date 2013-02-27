@@ -1,7 +1,7 @@
 /**
  * 
  */
-package anyflow.engine.network.http;
+package net.anyflow.network.http;
 
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;

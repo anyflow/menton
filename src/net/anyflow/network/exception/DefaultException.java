@@ -1,7 +1,7 @@
 /**
  * 
  */
-package anyflow.engine.network.exception;
+package net.anyflow.network.exception;
 
 /**
  * @author anyflow

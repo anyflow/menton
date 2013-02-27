@@ -1,7 +1,7 @@
 /**
  * 
  */
-package anyflow.engine.network.http;
+package net.anyflow.network.http;
 
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Executors;
+
+import net.anyflow.network.exception.DefaultException;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -38,7 +40,6 @@ import org.jboss.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import anyflow.engine.network.exception.DefaultException;
 
 /**
  * @author anyflow

@@ -1,6 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>anyflow.engine.network</groupId>
+    <groupId>net.anyflow.network</groupId>
+    <version>0.9</version>
+    <artifactId>netfacade</artifactId>
 
     <dependencies>
         <dependency>
@@ -136,6 +138,4 @@
         	</plugins>
         </pluginManagement>
     </build>
-    <version>0.5</version>
-    <artifactId>facade</artifactId>
 </project>

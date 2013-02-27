@@ -1,7 +1,7 @@
 /**
  * 
  */
-package anyflow.engine.network.test;
+package net.anyflow.network.test;
 
 /**
  * @author anyflow
