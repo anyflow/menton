@@ -41,10 +41,9 @@ public class AvroServer {
 		ExecutorService executor = Executors.newCachedThreadPool();
 		
 		instance.server = new NettyServer(responder
- 					    , new InetSocketAddress(port)
-					    , new NioServerSocketChannelFactory(executor
-					    								  , executor)
-					    , new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(16, 1048576, 1048576)));
+ 					    				, new InetSocketAddress(port)
+					    				, new NioServerSocketChannelFactory(executor, executor)
+					    				, new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(16, 1048576, 1048576)));
 
 		logger.info("Avro server started.");
 	}
