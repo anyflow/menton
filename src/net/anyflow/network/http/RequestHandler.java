@@ -4,6 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * @author anyflow
  * Base class for business logic. The class contains common stuffs for generating business logic.
  */
-public abstract class RequestHandler {
+public class RequestHandler {
 
 	private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
 	
@@ -108,14 +109,16 @@ public abstract class RequestHandler {
 	/**
 	 * @return processed content string
 	 */
-	public abstract String call();
+	public String call() {
+		throw new UnsupportedOperationException("Derived class's method should be called instead of this.");
+	}
 	
 	/**
 	 * @author anyflow
 	 *
 	 */
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.TYPE)
+	@Target({ElementType.TYPE, ElementType.METHOD})
 	public @interface Handles {
 		/**
 		 * @return supported paths
@@ -164,8 +167,47 @@ public abstract class RequestHandler {
 					if(requestedPath.equalsIgnoreCase(path)) { 
 						return item;
 					}
-					else {
-						continue;
+				}
+			}
+		}
+		
+		logger.error("Failed to find requestHandler.");
+		return null;
+	}
+	
+	/**
+	 * @param requestedPath
+	 * @param httpMethod
+	 * @return
+	 * @throws DefaultException
+	 */
+	public java.lang.reflect.Method findHandler(String requestedPath, String httpMethod) throws DefaultException {
+
+		String contextRoot = Configurator.getHttpContextRoot();
+		
+		Method[] methods = this.getClass().getMethods();
+		
+		for(Method item : methods) {
+			
+			RequestHandler.Handles bl = item.getAnnotation(RequestHandler.Handles.class);
+			
+			if(bl == null) { 
+				continue; 
+			}
+			
+			for(String method : bl.httpMethods()) {
+				if(method.equalsIgnoreCase(httpMethod) == false) {
+					continue;
+				}
+				
+				for(String rawPath : bl.paths()) {
+					
+					String path = (rawPath.charAt(0) == '/')
+							    ? rawPath
+							    : contextRoot + rawPath;
+					
+					if(requestedPath.equalsIgnoreCase(path)) { 
+						return item;
 					}
 				}
 			}

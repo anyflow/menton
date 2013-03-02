@@ -1,6 +1,8 @@
 package net.anyflow.network.http;
 
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Set;
@@ -9,6 +11,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+
+import net.anyflow.network.exception.DefaultException;
 
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelFuture;
@@ -32,7 +36,15 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 	
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultHttpServerHandler.class);
 
+	private RequestHandler requestHandler;
 	
+	public DefaultHttpServerHandler() {
+	}
+
+	public DefaultHttpServerHandler(RequestHandler requestHandler) {
+		this.requestHandler = requestHandler;
+	}
+
     public void messageReceived(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
     	
     	final HttpRequest request = (HttpRequest)e.getMessage();
@@ -46,52 +58,96 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 			public String call() 
 			{
 				logger.info(request.getUri().toString() + " requested.");
-								
-				String content = null;
 				
 				try {
 					String path = (new URI(request.getUri())).getPath();
 
-					Class<? extends RequestHandler> handlerClass = RequestHandler.find(path, request.getMethod().toString());
-					
-					if(handlerClass == null) {
-			    		response.setStatus(HttpResponseStatus.NOT_FOUND);
-			    		logger.info("unexcepted URI : {}", request.getUri().toString(), e);
-			    		
-			    		return "Failed to find the request handler.";
-					}
-					else {
-						RequestHandler handler = handlerClass.newInstance();
-						
-						handler.initialize(request, response);
-						
-						content = handler.call();
-					}
-
+					return requestHandler != null
+						   ? handleRequestByMethodTypeHandler(e, request, response, path)
+						   : handleRequestByClassTypeHandler(e, request, response, path);
 				}
 				catch (URISyntaxException e1) {
 		    		response.setStatus(HttpResponseStatus.NOT_FOUND);
 		    		logger.info("unexcepted URI : {}", request.getUri().toString(), e);
-		    		content = null;
+		    		return null;
 				}
 				catch (InstantiationException e) {
 					response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 		    		logger.error("Generating new request handler instance failed.", e);
-		    		content = null;
+		    		return null;
 				}
 				catch (IllegalAccessException e) {
 					response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 		    		logger.error("Generating new request handler instance failed.", e);
-		    		content = null;
+		    		return null;
 				}
 				catch(Exception e) {
 					response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 		    		logger.error("Unknown exception was thrown", e);
-		    		content = null;
+		    		return null;
 				}
+			}
+
+			/**
+			 * @param e
+			 * @param request
+			 * @param response
+			 * @param path
+			 * @return
+			 * @throws DefaultException
+			 * @throws IllegalAccessException
+			 * @throws InvocationTargetException
+			 */
+			private String handleRequestByMethodTypeHandler(
+					final MessageEvent e, final HttpRequest request,
+					final HttpResponse response, String path)
+					throws DefaultException, IllegalAccessException,
+					InvocationTargetException {
 				
-				return content;
+				requestHandler.initialize(request, response);
+				Method handler = requestHandler.findHandler(path, request.getMethod().toString());
 				
+				if(handler == null) {
+					response.setStatus(HttpResponseStatus.NOT_FOUND);
+					logger.info("unexcepted URI : {}", request.getUri().toString(), e);
+					
+					return "Failed to find the request handler.";
+				}
+				else {
+					return handler.invoke(requestHandler, (Object[])null).toString();
+				}
+			}
+
+			/**
+			 * @param e
+			 * @param request
+			 * @param response
+			 * @param path
+			 * @return
+			 * @throws DefaultException
+			 * @throws InstantiationException
+			 * @throws IllegalAccessException
+			 */
+			private String handleRequestByClassTypeHandler(
+					final MessageEvent e, final HttpRequest request,
+					final HttpResponse response, String path)
+					throws DefaultException, InstantiationException,
+					IllegalAccessException {
+				Class<? extends RequestHandler> handlerClass = RequestHandler.find(path, request.getMethod().toString());
+				
+				if(handlerClass == null) {
+					response.setStatus(HttpResponseStatus.NOT_FOUND);
+					logger.info("unexcepted URI : {}", request.getUri().toString(), e);
+					
+					return "Failed to find the request handler.";
+				}
+				else {
+					RequestHandler handler = handlerClass.newInstance();
+					
+					handler.initialize(request, response);
+					
+					return handler.call();
+				}
 			}
         });
         
