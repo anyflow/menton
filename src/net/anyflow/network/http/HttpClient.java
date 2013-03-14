@@ -28,7 +28,6 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.http.CookieEncoder;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
-import org.jboss.netty.handler.codec.http.HttpChunk;
 import org.jboss.netty.handler.codec.http.HttpClientCodec;
 import org.jboss.netty.handler.codec.http.HttpContentDecompressor;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
@@ -96,6 +95,11 @@ public class HttpClient {
 																							  , Executors.newCachedThreadPool()));
 		
 		final HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
+		
+		setHeaders(request);
+		addParameters(request, queryEncodingCharset);
+		debugRequest(request);
+
 		final HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
 		
 		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
@@ -111,11 +115,6 @@ public class HttpClient {
 				return pipeline;
 			}
 		});
-
-		setHeaders(request);
-		addParameters(request, queryEncodingCharset);
-	
-		debugRequest(request);
 		
 		ChannelFuture bootstrapFuture = bootstrap.connect(new InetSocketAddress(uri.getHost(), getPort()));
 		
@@ -329,7 +328,6 @@ public class HttpClient {
 	 */
 	public class HttpClientHandler extends SimpleChannelUpstreamHandler {
 		
-		private boolean readingChunks;
 		private MessageReceiver receiver;
 		private HttpRequest request;
 		private HttpResponse response;
@@ -343,7 +341,6 @@ public class HttpClient {
 			return response;
 		}
 		
-		//TODO chunk mode handling.. especially, receiver.messageReceived.
 		@Override
 		public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 
@@ -357,11 +354,12 @@ public class HttpClient {
 				receiver.messageReceived(request, response);
 			}
 		}
-
+		
 		/**
 		 * 
 		 */
 		private void debugResponse() {
+			
 			logger.debug("[response] STATUS : " + response.getStatus());
 			logger.debug("[response] VERSION : " + response.getProtocolVersion());
 			
@@ -380,5 +378,7 @@ public class HttpClient {
 				logger.debug("[response] } END OF CONTENT");
 			}
 		}
+		
+		
 	}
 }
