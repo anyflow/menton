@@ -136,16 +136,15 @@ public class HttpClient {
 			}
 		}
 		
-		ChannelFuture future = bootstrap.connect(new InetSocketAddress(uri.getHost(), getPort()));
+		ChannelFuture bootstrapFuture = bootstrap.connect(new InetSocketAddress(uri.getHost(), getPort()));
 		
-		Channel channel = future.awaitUninterruptibly().getChannel();
-		if(!future.isSuccess()) {
-			logger.error("connection failed.", future.getCause());
+		Channel channel = bootstrapFuture.awaitUninterruptibly().getChannel();
+		if(!bootstrapFuture.isSuccess()) {
+			logger.error("connection failed.", bootstrapFuture.getCause());
 			bootstrap.releaseExternalResources();
 			return null;
 		}
 		
-		channel = future.awaitUninterruptibly().getChannel();
 		channel.getCloseFuture().addListener(new ChannelFutureListener() {
 
 			@Override
@@ -156,11 +155,12 @@ public class HttpClient {
 					@Override
 					public void run() {
 						bootstrap.releaseExternalResources();
+						logger.debug("resource released.");
 					}
 				}).start();
 			}
 		});
-		
+
 		channel.write(request);
 		
 		if(isSynchronousMode == false) {
@@ -168,7 +168,10 @@ public class HttpClient {
 		}
 		
 		try {
-			channel.getCloseFuture().await();
+			if(channel.getCloseFuture().isDone() == false) {
+				channel.getCloseFuture().await();
+			}
+			
 			return clientHandler.getResponse();
 		} 
 		catch (InterruptedException e) {
@@ -372,7 +375,10 @@ public class HttpClient {
 						logger.debug("[response] } END OF CONTENT");
 					}
 					
-					if(receiver == null) { return; }
+					if(receiver == null) {
+						e.getChannel().close();
+						return; 
+					}
 					
 					receiver.messageReceived(request, response);
 				}
