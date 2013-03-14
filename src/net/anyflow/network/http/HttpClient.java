@@ -93,10 +93,8 @@ public class HttpClient {
 		}
 		
 		final ClientBootstrap bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(Executors.newCachedThreadPool()
-																						, Executors.newCachedThreadPool()));
+																							  , Executors.newCachedThreadPool()));
 		
-//		final boolean isSsl = scheme.equalsIgnoreCase("https");
-
 		final HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
 		final HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
 		
@@ -105,15 +103,7 @@ public class HttpClient {
 			@Override
 			public ChannelPipeline getPipeline() throws Exception {
 				ChannelPipeline pipeline = org.jboss.netty.channel.Channels.pipeline();
-				
-				//TODO implement SSL relevant Stuffs..
-//				if(isSsl) {
-//					SSLEngine engine = SecureChatSslContextFactory.getClientContext().createSSLEngine();
-//					engine.setUseClientMode(true);
-//					
-//					pipeline.addLast("ssl", new SslHandler(engine));
-//				}
-				
+								
 				pipeline.addLast("codec", new HttpClientCodec());
 				pipeline.addLast("inflateer", new HttpContentDecompressor());
 				pipeline.addLast("handler", clientHandler);
@@ -125,16 +115,7 @@ public class HttpClient {
 		setHeaders(request);
 		addParameters(request, queryEncodingCharset);
 	
-		logger.info("[request] URI : {}", request.getUri());
-		logger.info("[request] CONTENT : {}", request.getContent().toString(CharsetUtil.UTF_8));
-		logger.info("[request] HTTPMETHOD : {}", request.getMethod().toString());
-		if(!request.getHeaderNames().isEmpty()) {
-			for(String name : request.getHeaderNames()) {
-				for(String value : request.getHeaders(name)) {
-					logger.info("[request] HEADER : " + name + " = " + value);
-				}
-			}
-		}
+		debugRequest(request);
 		
 		ChannelFuture bootstrapFuture = bootstrap.connect(new InetSocketAddress(uri.getHost(), getPort()));
 		
@@ -177,6 +158,22 @@ public class HttpClient {
 		catch (InterruptedException e) {
 			logger.error("waiting interrupted.", e);
 			return null;
+		}
+	}
+
+	/**
+	 * @param request
+	 */
+	private void debugRequest(final HttpRequest request) {
+		logger.info("[request] URI : {}", request.getUri());
+		logger.info("[request] CONTENT : {}", request.getContent().toString(CharsetUtil.UTF_8));
+		logger.info("[request] HTTPMETHOD : {}", request.getMethod().toString());
+		if(!request.getHeaderNames().isEmpty()) {
+			for(String name : request.getHeaderNames()) {
+				for(String value : request.getHeaders(name)) {
+					logger.info("[request] HEADER : " + name + " = " + value);
+				}
+			}
 		}
 	}
 
@@ -349,50 +346,38 @@ public class HttpClient {
 		//TODO chunk mode handling.. especially, receiver.messageReceived.
 		@Override
 		public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-			if(!readingChunks) {
-				response = (HttpResponse) e.getMessage();
-				
-				logger.debug("[response] STATUS : " + response.getStatus());
-				logger.debug("[response] VERSION : " + response.getProtocolVersion());
-				
-				if(!response.getHeaderNames().isEmpty()) {
-					for(String name : response.getHeaderNames()) {
-						for(String value : response.getHeaders(name)) {
-							logger.debug("[response] HEADER : " + name + " = " + value);
-						}
-					}
-				}
-				
-				if(response.isChunked()) {
-					readingChunks = true;
-					logger.debug("[response] CHUNKED CONTENT {");
-				}
-				else {
-					ChannelBuffer content = response.getContent();
-					if(content.readable()) {
-						logger.debug("[response] CONTENT {");
-						logger.debug(content.toString(CharsetUtil.UTF_8));
-						logger.debug("[response] } END OF CONTENT");
-					}
-					
-					if(receiver == null) {
-						e.getChannel().close();
-						return; 
-					}
-					
-					receiver.messageReceived(request, response);
-				}
-					
+
+			response = (HttpResponse) e.getMessage();
+			
+			debugResponse();
+
+			e.getChannel().close();
+
+			if(receiver != null) {
+				receiver.messageReceived(request, response);
 			}
-			else {
-				HttpChunk chunk = (HttpChunk)e.getMessage();
-				if(chunk.isLast()) {
-					readingChunks = false;
-					logger.debug("[response] } END OF CHUNKED CONTENT");
+		}
+
+		/**
+		 * 
+		 */
+		private void debugResponse() {
+			logger.debug("[response] STATUS : " + response.getStatus());
+			logger.debug("[response] VERSION : " + response.getProtocolVersion());
+			
+			if(!response.getHeaderNames().isEmpty()) {
+				for(String name : response.getHeaderNames()) {
+					for(String value : response.getHeaders(name)) {
+						logger.debug("[response] HEADER : " + name + " = " + value);
+					}
 				}
-				else {
-					logger.debug(chunk.getContent().toString(CharsetUtil.UTF_8));
-				}
+			}
+				
+			ChannelBuffer content = response.getContent();
+			if(content.readable()) {
+				logger.debug("[response] CONTENT {");
+				logger.debug(content.toString(CharsetUtil.UTF_8));
+				logger.debug("[response] } END OF CONTENT");
 			}
 		}
 	}
