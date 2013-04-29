@@ -1,7 +1,7 @@
 /**
  * 
  */
-package net.anyflow.network.exception;
+package net.anyflow.menton.exception;
 
 /**
  * @author anyflow

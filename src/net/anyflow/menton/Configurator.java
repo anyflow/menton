@@ -1,11 +1,11 @@
 /**
  * 
  */
-package net.anyflow.network;
+package net.anyflow.menton;
 
 import java.net.URISyntaxException;
 
-import net.anyflow.network.exception.DefaultException;
+import net.anyflow.menton.exception.DefaultException;
 
 
 /**
