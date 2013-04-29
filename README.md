@@ -1,4 +1,4 @@
 Mento
 =============
 
-Netty baseda Network Engine facade
+Netty based Http / Avro facade
