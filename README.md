@@ -1,4 +1,4 @@
-NetworkEngine
+Mento
 =============
 
-Java Network Engine facade
+Netty baseda Network Engine facade
