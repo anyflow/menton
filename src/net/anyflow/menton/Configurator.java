@@ -16,24 +16,17 @@ public class Configurator {
 	/**
 	 * initialize the configurator
 	 * 
-	 * @param propertyFilePath
-	 *            full path and file name of the properties file.
-	 * @param httpRequestHandlerPackageRoot
-	 *            null in case of no using http service.
+	 * @param propertyInputStream
+	 *            Menton's properties InputStream
 	 */
-	public static void initialize(String propertyFilePath) {
+	public static void initialize(java.io.InputStream propertyInputStream) {
 
 		if(configuration == null) {
 			configuration = new java.util.Properties();
 		}
 
 		try {
-			java.io.InputStream is = new java.io.FileInputStream(propertyFilePath);
-
-			configuration.load(is);
-		}
-		catch(java.io.FileNotFoundException e) {
-			logger.error("Error occured on finding configuration file path.", e);
+			configuration.load(propertyInputStream);
 		}
 		catch(java.io.IOException e) {
 			logger.error("Loading network properties failed.", e);
