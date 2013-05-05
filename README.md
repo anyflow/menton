@@ -1,4 +1,4 @@
-NetworkEngine
+Menton
 =============
 
-Java Network Engine facade
+Netty based Http / Avro facade
