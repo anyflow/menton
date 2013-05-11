@@ -16,51 +16,44 @@ import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-
 public class AvroServer {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(AvroServer.class);
-	
+
 	private static AvroServer instance;
-	
+
 	private Server server;
-	
+
 	private AvroServer() {
 	}
-	
+
 	public static void start(Responder responder) throws DefaultException {
 		start(responder, Configurator.getAvroPort());
 	}
-	
+
 	public static void start(Responder responder, int port) {
 		if(instance == null) {
 			instance = new AvroServer();
 		}
 
 		ExecutorService executor = Executors.newCachedThreadPool();
-		
-		instance.server = new NettyServer(responder
- 					    				, new InetSocketAddress(port)
-					    				, new NioServerSocketChannelFactory(executor, executor)
-					    				, new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(16, 1048576, 1048576)));
+
+		instance.server = new NettyServer(responder, new InetSocketAddress(port), new NioServerSocketChannelFactory(
+				executor, executor), new ExecutionHandler(
+				new OrderedMemoryAwareThreadPoolExecutor(16, 1048576, 1048576)));
 
 		logger.info("Avro server started.");
 	}
-	
+
 	public static void stop() {
-		if(instance == null) { 
-			return;
-		}
-		
+		if(instance == null) { return; }
+
 		instance.server.close();
 	}
-	
+
 	public static int getPort() {
-		if(instance == null) { 
-			return -1;
-		}
-		
+		if(instance == null) { return -1; }
+
 		return instance.server.getPort();
 	}
 }
