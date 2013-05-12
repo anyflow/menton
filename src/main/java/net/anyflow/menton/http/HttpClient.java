@@ -39,122 +39,128 @@ import org.jboss.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * @author anyflow
- *
  */
 public class HttpClient {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(HttpClient.class);
 
 	private final URI uri;
 	private HttpMethod httpMethod;
-	private Map<String, String> cookies;
-	private Map<String, String> parameters;
-	
+	private final Map<String, String> cookies;
+	private final Map<String, String> parameters;
+
 	public HttpClient(URI uri) {
 		this.uri = uri;
-		
+
 		httpMethod = HttpMethod.GET;
 		cookies = new HashMap<String, String>();
 		parameters = new HashMap<String, String>();
 	}
-	
+
 	/**
 	 * Request with encoding utf-8
+	 * 
 	 * @param isSynchronousMode
 	 * @param receiver
-	 * @return if isSynchronousMode is true and the request processed successfully, returns HttpResponse instance, otherwise null; 
-	 * @throws DefaultException 
-	 * @throws UnsupportedEncodingException 
+	 * @return if isSynchronousMode is true and the request processed
+	 *         successfully, returns HttpResponse instance, otherwise null;
+	 * @throws DefaultException
+	 * @throws UnsupportedEncodingException
 	 */
-	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver) throws DefaultException, UnsupportedEncodingException {
+	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver) throws DefaultException,
+			UnsupportedEncodingException {
 		return request(isSynchronousMode, receiver, "utf-8");
 	}
+
 	/**
 	 * request.
+	 * 
 	 * @param isSynchronousMode
 	 * @param receiver
-	 * @param queryEncodingCharset query encoding charset. if it is null, no encoding will be applied.
-	 * @return if isSynchronousMode is true and the request processed successfully, returns HttpResponse instance, otherwise null; 
-	 * @throws DefaultException 
-	 * @throws UnsupportedEncodingException 
+	 * @param queryEncodingCharset
+	 *            query encoding charset. if it is null, no encoding will be
+	 *            applied.
+	 * @return if isSynchronousMode is true and the request processed
+	 *         successfully, returns HttpResponse instance, otherwise null;
+	 * @throws DefaultException
+	 * @throws UnsupportedEncodingException
 	 */
-	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
-		
+	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver, String queryEncodingCharset)
+			throws DefaultException, UnsupportedEncodingException {
+
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
-		//TODO support HTTPS
+		// TODO support HTTPS
 		if(!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https")) {
 			logger.error("Only HTTP(S) is supported.");
 			return null;
 		}
-		
-		final ClientBootstrap bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(Executors.newCachedThreadPool()
-																							  , Executors.newCachedThreadPool()));
-		
+
+		final ClientBootstrap bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(
+				Executors.newCachedThreadPool(), Executors.newCachedThreadPool()));
+
 		final HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
-		
+
 		setHeaders(request);
 		addParameters(request, queryEncodingCharset);
 		debugRequest(request);
 
 		final HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
-		
+
 		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
 
 			@Override
 			public ChannelPipeline getPipeline() throws Exception {
 				ChannelPipeline pipeline = org.jboss.netty.channel.Channels.pipeline();
-								
+
 				pipeline.addLast("codec", new HttpClientCodec());
 				pipeline.addLast("inflateer", new HttpContentDecompressor());
 				pipeline.addLast("handler", clientHandler);
-				
+
 				return pipeline;
 			}
 		});
-		
+
 		ChannelFuture bootstrapFuture = bootstrap.connect(new InetSocketAddress(uri.getHost(), getPort()));
-		
-		Channel channel = bootstrapFuture.awaitUninterruptibly().getChannel();
+
+		final Channel channel = bootstrapFuture.awaitUninterruptibly().getChannel();
 		if(!bootstrapFuture.isSuccess()) {
 			logger.error("connection failed.", bootstrapFuture.getCause());
 			bootstrap.releaseExternalResources();
 			return null;
 		}
-		
+
+		// Register resources releasing handler
 		channel.getCloseFuture().addListener(new ChannelFutureListener() {
 
 			@Override
-			public void operationComplete(ChannelFuture future)
-					throws Exception {
+			public void operationComplete(ChannelFuture future) throws Exception {
 				new Thread(new Runnable() {
 
 					@Override
 					public void run() {
+						channel.close().awaitUninterruptibly();
 						bootstrap.releaseExternalResources();
-						logger.debug("resource released.");
+						logger.debug("HttpClient resources released.");
 					}
 				}).start();
 			}
 		});
 
 		channel.write(request);
-		
-		if(isSynchronousMode == false) {
-			return null;
-		}
-		
+
+		if(isSynchronousMode == false) { return null; }
+
 		try {
 			if(channel.getCloseFuture().isDone() == false) {
 				channel.getCloseFuture().await();
 			}
-			
+
 			return clientHandler.getResponse();
-		} 
-		catch (InterruptedException e) {
+		}
+		catch(InterruptedException e) {
 			logger.error("waiting interrupted.", e);
 			return null;
 		}
@@ -177,82 +183,77 @@ public class HttpClient {
 	}
 
 	private int getPort() {
-		
+
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
 		int port = uri.getPort();
 		if(port == -1) {
 			if(scheme.equalsIgnoreCase("http")) {
 				return 80;
-			} 
-			else if(scheme.equalsIgnoreCase("https")) {
-				return 443;
 			}
+			else if(scheme.equalsIgnoreCase("https")) { return 443; }
 		}
-		
+
 		return port;
 	}
-	
+
 	private void setHeaders(HttpRequest request) {
-		
+
 		String host = uri.getHost() == null ? "localhost" : uri.getHost();
 
 		request.setHeader(HttpHeaders.Names.HOST, host);
 		request.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		request.setHeader(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
 		request.setHeader(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
-		
+
 		CookieEncoder httpCookieEncoder = new CookieEncoder(false);
-		
+
 		for(Entry<String, String> item : cookies.entrySet()) {
 			httpCookieEncoder.addCookie(item.getKey(), item.getValue());
 		}
 		request.setHeader(HttpHeaders.Names.COOKIE, httpCookieEncoder.encode());
 	}
-	
+
 	/**
 	 * @param request
 	 * @throws DefaultException
-	 * @throws UnsupportedEncodingException 
+	 * @throws UnsupportedEncodingException
 	 */
-	private void addParameters(HttpRequest request, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
-		
-		String address = uri.getScheme() 
-					   + "://" 
-				       + uri.getAuthority()
-				       + ":"
-				       + getPort()
-				       + uri.getPath();
-		
+	private void addParameters(HttpRequest request, String queryEncodingCharset) throws DefaultException,
+			UnsupportedEncodingException {
+
+		String address = uri.getScheme() + "://" + uri.getAuthority() + ":" + getPort() + uri.getPath();
+
 		if(httpMethod == HttpMethod.GET) {
 			String query = uri.getQuery();
-			
+
 			if(query != null && query.length() > 0) {
-				
+
 				String[] tokens = query.split("=|&");
-				for(int i=0; i<tokens.length; ++i) {
-					if(i % 2 == 0) { continue; }
-					
-					parameters.put(tokens[i-1], tokens[i]);
+				for(int i = 0; i < tokens.length; ++i) {
+					if(i % 2 == 0) {
+						continue;
+					}
+
+					parameters.put(tokens[i - 1], tokens[i]);
 				}
 			}
-			
+
 			if(parameters.size() > 0) {
 				address += "?" + getParametersString(queryEncodingCharset);
 			}
 		}
 		else if(httpMethod == HttpMethod.POST) {
 			request.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/x-www-form-urlencoded");
-			
+
 			if(parameters.size() > 0) {
 				String paramsString = getParametersString(queryEncodingCharset);
-				
-				Charset charset = queryEncodingCharset == null
-						        ? Charset.defaultCharset()
-						        : Charset.forName(queryEncodingCharset);
-						        
+
+				Charset charset = queryEncodingCharset == null ? Charset.defaultCharset() : Charset
+						.forName(queryEncodingCharset);
+
 				ChannelBuffer cb = ChannelBuffers.copiedBuffer(paramsString, charset);
-				
+
 				request.setHeader(HttpHeaders.Names.CONTENT_LENGTH, cb.readableBytes());
 				request.setContent(cb);
 			}
@@ -260,17 +261,17 @@ public class HttpClient {
 		else {
 			throw new DefaultException("only GET/POST methods are supported.");
 		}
-		
+
 		request.setUri(address);
 	}
-	
+
 	/**
 	 * @param httpMethod
 	 */
 	public void setHttpMethod(HttpMethod httpMethod) {
 		this.httpMethod = httpMethod;
 	}
-	
+
 	/**
 	 * @param key
 	 * @param value
@@ -278,7 +279,7 @@ public class HttpClient {
 	public void setCookie(String key, String value) {
 		cookies.put(key, value);
 	}
-	
+
 	/**
 	 * @return
 	 */
@@ -293,59 +294,55 @@ public class HttpClient {
 	public void addParameter(String key, String value) {
 		parameters.put(key, value);
 	}
-	
+
 	/**
 	 * @return
 	 */
 	public Map<String, String> getParameters() {
 		return parameters;
 	}
-	
+
 	private String getParametersString(String queryEncodingCharset) throws UnsupportedEncodingException {
-		if(parameters.size() <= 0) {
-			return "";
-		}
-		
+		if(parameters.size() <= 0) { return ""; }
+
 		StringBuilder query = new StringBuilder();
 		String value = null;
-		
+
 		for(Map.Entry<String, String> item : parameters.entrySet()) {
-		
-			value = queryEncodingCharset != null
-			      ? java.net.URLEncoder.encode(item.getValue(), queryEncodingCharset)
-			      : item.getValue();
-			      
-			query = query.append(item.getKey()).append("=").append(value).append("&");  
+
+			value = queryEncodingCharset != null ? java.net.URLEncoder.encode(item.getValue(), queryEncodingCharset)
+					: item.getValue();
+
+			query = query.append(item.getKey()).append("=").append(value).append("&");
 		}
 
 		query = query.deleteCharAt(query.length() - 1);
 		return query.toString();
 	}
-	
+
 	/**
 	 * @author anyflow
-	 *
 	 */
 	public class HttpClientHandler extends SimpleChannelUpstreamHandler {
-		
-		private MessageReceiver receiver;
-		private HttpRequest request;
+
+		private final MessageReceiver receiver;
+		private final HttpRequest request;
 		private HttpResponse response;
-		
+
 		public HttpClientHandler(MessageReceiver receiver, HttpRequest request) {
 			this.receiver = receiver;
 			this.request = request;
 		}
-		
+
 		public HttpResponse getResponse() {
 			return response;
 		}
-		
+
 		@Override
 		public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 
-			response = (HttpResponse) e.getMessage();
-			
+			response = (HttpResponse)e.getMessage();
+
 			debugResponse();
 
 			e.getChannel().close();
@@ -354,15 +351,15 @@ public class HttpClient {
 				receiver.messageReceived(request, response);
 			}
 		}
-		
+
 		/**
 		 * 
 		 */
 		private void debugResponse() {
-			
+
 			logger.debug("[response] STATUS : " + response.getStatus());
 			logger.debug("[response] VERSION : " + response.getProtocolVersion());
-			
+
 			if(!response.getHeaderNames().isEmpty()) {
 				for(String name : response.getHeaderNames()) {
 					for(String value : response.getHeaders(name)) {
@@ -370,7 +367,7 @@ public class HttpClient {
 					}
 				}
 			}
-				
+
 			ChannelBuffer content = response.getContent();
 			if(content.readable()) {
 				logger.debug("[response] CONTENT {");
@@ -378,7 +375,6 @@ public class HttpClient {
 				logger.debug("[response] } END OF CONTENT");
 			}
 		}
-		
-		
+
 	}
 }

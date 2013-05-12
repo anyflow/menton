@@ -10,6 +10,8 @@ import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.group.ChannelGroup;
+import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.codec.http.HttpContentCompressor;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
@@ -24,6 +26,7 @@ public class HttpServer {
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpServer.class);
 	private static ServerBootstrap bootstrap;
+	private static ChannelGroup channelGroup;
 
 	public HttpServer() {
 	}
@@ -66,15 +69,22 @@ public class HttpServer {
 			}
 		});
 
-		// Bind and start to accept incoming connections.
-		bootstrap.bind(new InetSocketAddress(port));
+		channelGroup = new DefaultChannelGroup();
 
-		logger.info("Htttp server started.");
+		// Bind, start to accept incoming connections and manage the channel.
+		channelGroup.add(bootstrap.bind(new InetSocketAddress(port)));
+
+		logger.info("Http server started.");
 	}
 
 	public static void stop() {
+		if(channelGroup != null) {
+			channelGroup.close().awaitUninterruptibly();
+		}
+
 		if(bootstrap == null) { return; }
 
 		bootstrap.releaseExternalResources();
+		logger.debug("HttpServer resources released.");
 	}
 }

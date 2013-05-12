@@ -49,6 +49,7 @@ public class AvroServer {
 		if(instance == null) { return; }
 
 		instance.server.close();
+		logger.debug("AvroServer closed.");
 	}
 
 	public static int getPort() {
