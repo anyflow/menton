@@ -170,13 +170,13 @@ public class HttpClient {
 	 * @param request
 	 */
 	private void debugRequest(final HttpRequest request) {
-		logger.info("[request] URI : {}", request.getUri());
-		logger.info("[request] CONTENT : {}", request.getContent().toString(CharsetUtil.UTF_8));
-		logger.info("[request] HTTPMETHOD : {}", request.getMethod().toString());
+		logger.debug("[request] URI : {}", request.getUri());
+		logger.debug("[request] CONTENT : {}", request.getContent().toString(CharsetUtil.UTF_8));
+		logger.debug("[request] HTTPMETHOD : {}", request.getMethod().toString());
 		if(!request.getHeaderNames().isEmpty()) {
 			for(String name : request.getHeaderNames()) {
 				for(String value : request.getHeaders(name)) {
-					logger.info("[request] HEADER : " + name + " = " + value);
+					logger.debug("[request] HEADER : " + name + " = " + value);
 				}
 			}
 		}
@@ -222,7 +222,7 @@ public class HttpClient {
 	private void addParameters(HttpRequest request, String queryEncodingCharset) throws DefaultException,
 			UnsupportedEncodingException {
 
-		String address = uri.getScheme() + "://" + uri.getAuthority() + ":" + getPort() + uri.getPath();
+		String address = uri.getScheme() + "://" + uri.getAuthority() + uri.getPath();
 
 		if(httpMethod == HttpMethod.GET) {
 			String query = uri.getQuery();
