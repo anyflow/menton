@@ -4,9 +4,9 @@
 
   <groupId>net.anyflow</groupId>
   <artifactId>menton</artifactId>
-  <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Menton</name>
+  <version>0.98</version>
   <description>Menton Framework</description>
   <url>https://github.com/anyflow/Menton</url>
 
@@ -137,4 +137,5 @@
       </plugins>
     </pluginManagement>
   </build>
+
 </project>
