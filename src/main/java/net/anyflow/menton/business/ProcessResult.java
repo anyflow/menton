@@ -29,9 +29,12 @@ public class ProcessResult<Return> {
 	Return returnValue;
 	Error error;
 
+	public ProcessResult() {
+		this(null, Error.NONE);
+	}
+
 	public ProcessResult(Return returnVal) {
-		this.returnValue = returnVal;
-		this.error = Error.NONE;
+		this(returnVal, Error.NONE);
 	}
 
 	public ProcessResult(Return returnVal, Error error) {
