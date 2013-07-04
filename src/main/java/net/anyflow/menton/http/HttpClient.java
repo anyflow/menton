@@ -46,17 +46,38 @@ public class HttpClient {
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpClient.class);
 
-	private final URI uri;
+	private URI uri;
+
+	/**
+	 * @return the uri
+	 */
+	public URI getUri() {
+		return uri;
+	}
+
+	/**
+	 * @param uri
+	 *            the uri to set
+	 */
+	public void setUri(URI uri) {
+		this.uri = uri;
+	}
+
 	private HttpMethod httpMethod;
 	private final Map<String, String> cookies;
 	private final Map<String, String> parameters;
 
-	public HttpClient(URI uri) {
-		this.uri = uri;
-
+	public HttpClient() {
 		httpMethod = HttpMethod.GET;
+
 		cookies = new HashMap<String, String>();
 		parameters = new HashMap<String, String>();
+	}
+
+	public HttpClient(URI uri) {
+		this();
+
+		this.uri = uri;
 	}
 
 	/**
