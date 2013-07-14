@@ -6,7 +6,7 @@
   <artifactId>menton</artifactId>
   <packaging>jar</packaging>
   <name>Menton</name>
-  <version>0.98</version>
+  <version>1.0.0</version>
   <description>Menton Framework</description>
   <url>https://github.com/anyflow/Menton</url>
 
@@ -14,6 +14,14 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
+  <!-- for build number management -->
+  <scm>
+    <connection>scm:svn:http://127.0.0.1/dummy</connection>
+    <developerConnection>scm:svn:https://127.0.0.1/dummy</developerConnection>
+    <tag>HEAD</tag>
+    <url>http://127.0.0.1/dummy</url>
+  </scm>
+  
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -55,7 +63,57 @@
   </dependencies>
 
   <build>
+    <finalName>${project.artifactId}-${project.version}.${buildNumber}</finalName>
+      
     <plugins>
+
+      <!-- for custom properties(pom.properties) -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>1.0-alpha-2</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>read-project-properties</goal>
+            </goals>
+            <configuration>
+              <files>
+                <file>${basedir}/pom.properties</file>
+              </files>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+        
+      <!-- for build number managing -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <version>1.2</version>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>create</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <buildNumberPropertiesFileLocation>${basedir}/pom.properties</buildNumberPropertiesFileLocation>
+          <!-- <format>{0,number} ({1,date,yyyy-MM-dd HH:mm:ss})</format> -->
+          <format>{0,number}</format>
+          <items>
+            <item>buildNumber</item>
+            <item>timestamp</item>
+          </items>
+          <doCheck>false</doCheck>
+          <doUpdate>false</doUpdate>
+          <revisionOnScmFailure>unknownbuild</revisionOnScmFailure>
+        </configuration>
+      </plugin>
+        
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
