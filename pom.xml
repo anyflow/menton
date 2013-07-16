@@ -16,12 +16,12 @@
 
   <!-- for build number management -->
   <scm>
-    <connection>scm:svn:http://127.0.0.1/dummy</connection>
-    <developerConnection>scm:svn:https://127.0.0.1/dummy</developerConnection>
+    <connection>scm:git:ssh://git@10.170.84.102:/pushrequester.git</connection>
+    <developerConnection>scm:git:ssh://git@10.170.84.102:/pushrequester.git</developerConnection>
     <tag>HEAD</tag>
-    <url>http://127.0.0.1/dummy</url>
+    <url></url>
   </scm>
-  
+
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -64,29 +64,9 @@
 
   <build>
     <finalName>${project.artifactId}-${project.version}.${buildNumber}</finalName>
-      
+
     <plugins>
 
-      <!-- for custom properties(pom.properties) -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>properties-maven-plugin</artifactId>
-        <version>1.0-alpha-2</version>
-        <executions>
-          <execution>
-            <phase>initialize</phase>
-            <goals>
-              <goal>read-project-properties</goal>
-            </goals>
-            <configuration>
-              <files>
-                <file>${basedir}/pom.properties</file>
-              </files>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-        
       <!-- for build number managing -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -101,19 +81,21 @@
           </execution>
         </executions>
         <configuration>
-          <buildNumberPropertiesFileLocation>${basedir}/pom.properties</buildNumberPropertiesFileLocation>
+          <buildNumberPropertiesFileLocation>${basedir}/src/main/resources/META-INF/buildnumber.properties</buildNumberPropertiesFileLocation>
           <!-- <format>{0,number} ({1,date,yyyy-MM-dd HH:mm:ss})</format> -->
-          <format>{0,number}</format>
+          <format>{0,number} ({2})</format>
           <items>
             <item>buildNumber</item>
             <item>timestamp</item>
+            <item>scmVersion</item>
           </items>
-          <doCheck>false</doCheck>
+          <doCheck>true</doCheck>
           <doUpdate>false</doUpdate>
           <revisionOnScmFailure>unknownbuild</revisionOnScmFailure>
+          <shortRevisionLength>7</shortRevisionLength>
         </configuration>
       </plugin>
-        
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
