@@ -6,8 +6,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import net.anyflow.menton.Configurator;
@@ -34,6 +38,7 @@ public class RequestHandler {
 	private HttpRequest request;
 	private HttpResponse response;
 	private Map<String, List<String>> parameters;
+	private Map<String, String> headers;
 
 	/**
 	 * @return the parameters
@@ -47,6 +52,7 @@ public class RequestHandler {
 		this.response = response;
 
 		parseParameters();
+		parseHeaders();
 	}
 
 	public HttpRequest getRequest() {
@@ -93,10 +99,34 @@ public class RequestHandler {
 
 		parameters = queryStringDecoder.getParameters();
 	}
+	
+	private void parseHeaders() {
+		
+		HashMap<String,String> headerMap = new HashMap<String,String>();
+		List<Entry<String, String>> headerList =  this.request.getHeaders();
+		
+		Iterator itr = headerList.iterator();
+		while(itr.hasNext()) {
+			Entry<String, String> itm = (Entry<String, String>) itr.next();
+			headerMap.put(itm.getKey().toLowerCase(), itm.getValue());
+		}
+		
+		headers = headerMap;
+		
+	}
 
 	public String getParameter(String key) {
 		if(parameters.containsKey(key)) {
 			return parameters.get(key).get(0);
+		}
+		else {
+			return "";
+		}
+	}
+
+	public String getHeader(String key) {
+		if(headers.containsKey(key.toLowerCase())) {
+			return headers.get(key.toLowerCase());
 		}
 		else {
 			return "";
