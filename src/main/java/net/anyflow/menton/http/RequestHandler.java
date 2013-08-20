@@ -6,7 +6,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -99,20 +98,17 @@ public class RequestHandler {
 
 		parameters = queryStringDecoder.getParameters();
 	}
-	
+
 	private void parseHeaders() {
-		
-		HashMap<String,String> headerMap = new HashMap<String,String>();
-		List<Entry<String, String>> headerList =  this.request.getHeaders();
-		
-		Iterator itr = headerList.iterator();
+		headers = new HashMap<String, String>();
+		List<Entry<String, String>> headerList = this.request.getHeaders();
+
+		Iterator<Entry<String, String>> itr = headerList.iterator();
+
 		while(itr.hasNext()) {
-			Entry<String, String> itm = (Entry<String, String>) itr.next();
-			headerMap.put(itm.getKey().toLowerCase(), itm.getValue());
+			Entry<String, String> item = itr.next();
+			headers.put(item.getKey().toLowerCase(), item.getValue());
 		}
-		
-		headers = headerMap;
-		
 	}
 
 	public String getParameter(String key) {
