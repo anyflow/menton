@@ -5,6 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -16,6 +18,7 @@ import java.util.Set;
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.exception.DefaultException;
 
+import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
@@ -36,6 +39,7 @@ public class RequestHandler {
 
 	private HttpRequest request;
 	private HttpResponse response;
+	private MessageEvent messageEvent;
 	private Map<String, List<String>> parameters;
 	private Map<String, String> headers;
 
@@ -46,9 +50,10 @@ public class RequestHandler {
 		return parameters;
 	}
 
-	public void initialize(HttpRequest request, HttpResponse response) {
+	public void initialize(HttpRequest request, HttpResponse response, MessageEvent e) {
 		this.request = request;
 		this.response = response;
+		this.messageEvent = e;
 
 		parseParameters();
 		parseHeaders();
@@ -60,6 +65,13 @@ public class RequestHandler {
 
 	public HttpResponse getResponse() {
 		return response;
+	}
+	
+	public String getRemoteIpAddress() {
+		InetSocketAddress socketAddress = (InetSocketAddress) messageEvent.getRemoteAddress();
+		InetAddress inetAddress = socketAddress.getAddress();
+		
+		return inetAddress.getHostAddress();
 	}
 
 	public String getUri() {

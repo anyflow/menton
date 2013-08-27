@@ -100,7 +100,7 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 					final HttpResponse response, String path) throws DefaultException, IllegalAccessException,
 					InvocationTargetException {
 
-				requestHandler.initialize(request, response);
+				requestHandler.initialize(request, response, e);
 				Method handler = requestHandler.findHandler(path, request.getMethod().toString());
 
 				if(handler == null) {
@@ -139,7 +139,7 @@ public class DefaultHttpServerHandler extends SimpleChannelUpstreamHandler {
 				else {
 					RequestHandler handler = handlerClass.newInstance();
 
-					handler.initialize(request, response);
+					handler.initialize(request, response, e);
 
 					return handler.call();
 				}
