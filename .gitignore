@@ -7,3 +7,8 @@
 
 # directories #
 target/
+
+# eclipse related files #
+.project
+.settings
+.classpath
