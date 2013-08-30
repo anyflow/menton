@@ -66,12 +66,14 @@ public class HttpClient {
 	private HttpMethod httpMethod;
 	private final Map<String, String> cookies;
 	private final Map<String, String> parameters;
+	private final Map<String, String> headers;
 
 	public HttpClient() {
 		httpMethod = HttpMethod.GET;
 
 		cookies = new HashMap<String, String>();
 		parameters = new HashMap<String, String>();
+		headers = new HashMap<String, String>();
 	}
 
 	public HttpClient(URI uri) {
@@ -226,6 +228,9 @@ public class HttpClient {
 		request.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		request.setHeader(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
 		request.setHeader(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
+		for(Entry<String, String> item : headers.entrySet()) {
+			request.setHeader(item.getKey(), item.getValue());
+		}
 
 		CookieEncoder httpCookieEncoder = new CookieEncoder(false);
 
@@ -321,6 +326,21 @@ public class HttpClient {
 	 */
 	public Map<String, String> getParameters() {
 		return parameters;
+	}
+	
+	/**
+	 * @param key
+	 * @param value
+	 */
+	public void addHeader(String key, String value) {
+		headers.put(key, value);
+	}
+
+	/**
+	 * @return
+	 */
+	public Map<String, String> getHeaders() {
+		return headers;
 	}
 
 	private String getParametersString(String queryEncodingCharset) throws UnsupportedEncodingException {
