@@ -3,6 +3,25 @@
  */
 package net.anyflow.menton.http;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpObject;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.ssl.SslHandler;
+
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -14,28 +33,6 @@ import java.util.concurrent.Executors;
 
 import net.anyflow.menton.exception.DefaultException;
 
-import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.jboss.netty.handler.codec.http.CookieEncoder;
-import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
-import org.jboss.netty.handler.codec.http.HttpClientCodec;
-import org.jboss.netty.handler.codec.http.HttpContentDecompressor;
-import org.jboss.netty.handler.codec.http.HttpHeaders;
-import org.jboss.netty.handler.codec.http.HttpMethod;
-import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpResponse;
-import org.jboss.netty.handler.codec.http.HttpVersion;
-import org.jboss.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,15 +112,39 @@ public class HttpClient {
 
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
+		final boolean ssl = false;
 		// TODO support HTTPS
 		if(!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https")) {
 			logger.error("Only HTTP(S) is supported.");
 			return null;
 		}
 
-		final ClientBootstrap bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(
-				Executors.newCachedThreadPool(), Executors.newCachedThreadPool()));
+		EventLoopGroup group = new NioEventLoopGroup();
+		
+		try {
+			Bootstrap bootstrap = new Bootstrap();
+			bootstrap.group(group).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
 
+				@Override
+				protected void initChannel(SocketChannel ch) throws Exception {
+					
+					ChannelPipeline p = ch.pipeline();
+					
+					
+					p.addLast("log", new LoggingHandler(LogLevel.INFO));
+					
+					if(ssl) {
+						//TODO
+//						SSL related..
+						
+//						p.addLast("ssl", new SslHandler(engine));
+					}
+					
+					p.addLast("codec", new HttpClientCodec());
+				}
+				
+			})
+		}
 		final HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
 
 		setHeaders(request);
@@ -327,7 +348,7 @@ public class HttpClient {
 	public Map<String, String> getParameters() {
 		return parameters;
 	}
-	
+
 	/**
 	 * @param key
 	 * @param value
@@ -364,7 +385,7 @@ public class HttpClient {
 	/**
 	 * @author anyflow
 	 */
-	public class HttpClientHandler extends SimpleChannelUpstreamHandler {
+	public class HttpClientHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		private final MessageReceiver receiver;
 		private final HttpRequest request;
@@ -401,15 +422,15 @@ public class HttpClient {
 			logger.debug("[response] STATUS : " + response.getStatus());
 			logger.debug("[response] VERSION : " + response.getProtocolVersion());
 
-			if(!response.getHeaderNames().isEmpty()) {
-				for(String name : response.getHeaderNames()) {
-					for(String value : response.getHeaders(name)) {
+			if(!response.headers().isEmpty()) {
+				for(String name : response.headers().names()) {
+					for(String value : response.headers().getAll(name)) {
 						logger.debug("[response] HEADER : " + name + " = " + value);
 					}
 				}
 			}
 
-			ChannelBuffer content = response.getContent();
+			ChannelBuffer content = response.get
 			if(content.readable()) {
 				logger.debug("[response] CONTENT {");
 				logger.debug(content.toString(CharsetUtil.UTF_8));
@@ -417,5 +438,20 @@ public class HttpClient {
 			}
 		}
 
+		/*
+		 * (non-Javadoc)
+		 * @see
+		 * io.netty.channel.SimpleChannelInboundHandler#channelRead0(io.netty
+		 * .channel.ChannelHandlerContext, java.lang.Object)
+		 */
+		@Override
+		protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg) throws Exception {
+			if(msg instanceof HttpResponse) {
+				response = (HttpResponse)msg;
+
+				debugResponse();
+			}
+
+		}
 	}
 }
