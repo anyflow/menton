@@ -3,6 +3,8 @@
  */
 package net.anyflow.menton;
 
+import java.io.Reader;
+
 import net.anyflow.menton.exception.DefaultException;
 
 /**
@@ -13,6 +15,12 @@ public class Configurator {
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Configurator.class);
 	private static java.util.Properties configuration;
 
+	private static void prepareInitialize() {
+		if(configuration == null) {
+			configuration = new java.util.Properties();
+		}
+	}
+
 	/**
 	 * initialize the configurator
 	 * 
@@ -21,12 +29,22 @@ public class Configurator {
 	 */
 	public static void initialize(java.io.InputStream propertyInputStream) {
 
-		if(configuration == null) {
-			configuration = new java.util.Properties();
-		}
+		prepareInitialize();
 
 		try {
 			configuration.load(propertyInputStream);
+		}
+		catch(java.io.IOException e) {
+			logger.error("Loading network properties failed.", e);
+		}
+	}
+
+	public static void initialize(Reader propertyReader) {
+
+		prepareInitialize();
+
+		try {
+			configuration.load(propertyReader);
 		}
 		catch(java.io.IOException e) {
 			logger.error("Loading network properties failed.", e);
