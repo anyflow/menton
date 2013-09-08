@@ -3,19 +3,19 @@
  */
 package net.anyflow.menton.http;
 
-import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
 
 /**
  * @author anyflow
- *
  */
 public interface MessageReceiver {
 
 	/**
 	 * Will be called on message received.
+	 * 
 	 * @param request
 	 * @param response
 	 */
-	void messageReceived(HttpRequest request, HttpResponse response);
+	void messageReceived(FullHttpRequest request, FullHttpResponse response);
 }

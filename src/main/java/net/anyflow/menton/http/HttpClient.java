@@ -4,6 +4,9 @@
 package net.anyflow.menton.http;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -12,24 +15,28 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.ClientCookieEncoder;
+import io.netty.handler.codec.http.Cookie;
+import io.netty.handler.codec.http.DefaultCookie;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpContentDecompressor;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.ssl.SslHandler;
+import io.netty.util.CharsetUtil;
 
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.Executors;
 
 import net.anyflow.menton.exception.DefaultException;
 
@@ -61,14 +68,14 @@ public class HttpClient {
 	}
 
 	private HttpMethod httpMethod;
-	private final Map<String, String> cookies;
+	private final Map<String, Cookie> cookies;
 	private final Map<String, String> parameters;
 	private final Map<String, String> headers;
 
 	public HttpClient() {
 		httpMethod = HttpMethod.GET;
 
-		cookies = new HashMap<String, String>();
+		cookies = new HashMap<String, Cookie>();
 		parameters = new HashMap<String, String>();
 		headers = new HashMap<String, String>();
 	}
@@ -82,37 +89,35 @@ public class HttpClient {
 	/**
 	 * Request with encoding utf-8
 	 * 
-	 * @param isSynchronousMode
 	 * @param receiver
-	 * @return if isSynchronousMode is true and the request processed
-	 *         successfully, returns HttpResponse instance, otherwise null;
+	 * @return if receiver is not null and the request processed successfully,
+	 *         returns HttpResponse instance, otherwise null;
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver) throws DefaultException,
-			UnsupportedEncodingException {
-		return request(isSynchronousMode, receiver, "utf-8");
+	public FullHttpResponse request(final MessageReceiver receiver) throws DefaultException, UnsupportedEncodingException {
+		return request(receiver, "utf-8");
 	}
 
 	/**
 	 * request.
 	 * 
-	 * @param isSynchronousMode
 	 * @param receiver
 	 * @param queryEncodingCharset
 	 *            query encoding charset. if it is null, no encoding will be
 	 *            applied.
-	 * @return if isSynchronousMode is true and the request processed
-	 *         successfully, returns HttpResponse instance, otherwise null;
+	 * @return if receiver is not null the request processed successfully,
+	 *         returns HttpResponse instance, otherwise null;
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver, String queryEncodingCharset)
-			throws DefaultException, UnsupportedEncodingException {
+	public FullHttpResponse request(final MessageReceiver receiver, String queryEncodingCharset) throws DefaultException,
+			UnsupportedEncodingException {
 
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
 		final boolean ssl = false;
+
 		// TODO support HTTPS
 		if(!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https")) {
 			logger.error("Only HTTP(S) is supported.");
@@ -120,114 +125,77 @@ public class HttpClient {
 		}
 
 		EventLoopGroup group = new NioEventLoopGroup();
-		
+
 		try {
+			final DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
+
+			setHeaders(request);
+			addParameters(request, queryEncodingCharset);
+			debugRequest(request);
+
+			final HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
+
 			Bootstrap bootstrap = new Bootstrap();
 			bootstrap.group(group).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
 
 				@Override
 				protected void initChannel(SocketChannel ch) throws Exception {
-					
+
 					ChannelPipeline p = ch.pipeline();
-					
-					
+
 					p.addLast("log", new LoggingHandler(LogLevel.INFO));
-					
+
 					if(ssl) {
-						//TODO
-//						SSL related..
-						
-//						p.addLast("ssl", new SslHandler(engine));
+						// TODO
+						// SSL related..
+
+						// p.addLast("ssl", new SslHandler(engine));
 					}
-					
+
 					p.addLast("codec", new HttpClientCodec());
+					p.addLast("inflater", new HttpContentDecompressor());
+					p.addLast("handler", clientHandler);
 				}
-				
-			})
-		}
-		final HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
 
-		setHeaders(request);
-		addParameters(request, queryEncodingCharset);
-		debugRequest(request);
+			});
 
-		final HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
+			Channel channel = bootstrap.connect(uri.getHost(), getPort()).sync().channel();
+			channel.writeAndFlush(request);
 
-		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-
-			@Override
-			public ChannelPipeline getPipeline() throws Exception {
-				ChannelPipeline pipeline = org.jboss.netty.channel.Channels.pipeline();
-
-				pipeline.addLast("codec", new HttpClientCodec());
-				pipeline.addLast("inflateer", new HttpContentDecompressor());
-				pipeline.addLast("handler", clientHandler);
-
-				return pipeline;
+			if(receiver == null) {
+				channel.closeFuture().sync();
+				return clientHandler.getResponse();
 			}
-		});
-
-		ChannelFuture bootstrapFuture = bootstrap.connect(new InetSocketAddress(uri.getHost(), getPort()));
-
-		final Channel channel = bootstrapFuture.awaitUninterruptibly().getChannel();
-		if(!bootstrapFuture.isSuccess()) {
-			logger.error("connection failed.", bootstrapFuture.getCause());
-			bootstrap.releaseExternalResources();
-			return null;
-		}
-
-		// Register resources releasing handler
-		channel.getCloseFuture().addListener(new ChannelFutureListener() {
-
-			@Override
-			public void operationComplete(ChannelFuture future) throws Exception {
-				new Thread(new Runnable() {
-
-					@Override
-					public void run() {
-						channel.close().awaitUninterruptibly();
-						bootstrap.releaseExternalResources();
-						logger.debug("HttpClient resources released.");
-					}
-				}).start();
+			else {
+				return null;
 			}
-		});
-
-		channel.write(request);
-
-		if(isSynchronousMode == false) { return null; }
-
-		try {
-			if(channel.getCloseFuture().isDone() == false) {
-				channel.getCloseFuture().await();
-			}
-
-			return clientHandler.getResponse();
 		}
 		catch(InterruptedException e) {
-			logger.error("waiting interrupted.", e);
+			logger.error(e.getMessage(), e);
 			return null;
+		}
+
+		finally {
+			group.shutdownGracefully();
 		}
 	}
 
 	/**
 	 * @param request
 	 */
-	private void debugRequest(final HttpRequest request) {
+	private void debugRequest(final FullHttpRequest request) {
 		logger.debug("[request] URI : {}", request.getUri());
-		logger.debug("[request] CONTENT : {}", request.getContent().toString(CharsetUtil.UTF_8));
+		logger.debug("[request] CONTENT : {}", request.content().toString(CharsetUtil.UTF_8));
 		logger.debug("[request] HTTPMETHOD : {}", request.getMethod().toString());
-		if(!request.getHeaderNames().isEmpty()) {
-			for(String name : request.getHeaderNames()) {
-				for(String value : request.getHeaders(name)) {
-					logger.debug("[request] HEADER : " + name + " = " + value);
-				}
-			}
+
+		if(request.headers().isEmpty() == true) { return; }
+
+		for(String name : request.headers().names()) {
+			logger.debug("[request] HEADER : " + name + " = " + request.headers().get(name));
 		}
 	}
 
 	private int getPort() {
-
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
 		int port = uri.getPort();
@@ -245,20 +213,15 @@ public class HttpClient {
 
 		String host = uri.getHost() == null ? "localhost" : uri.getHost();
 
-		request.setHeader(HttpHeaders.Names.HOST, host);
-		request.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-		request.setHeader(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
-		request.setHeader(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
+		request.headers().set(HttpHeaders.Names.HOST, host);
+		request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+		request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
+		request.headers().set(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
 		for(Entry<String, String> item : headers.entrySet()) {
-			request.setHeader(item.getKey(), item.getValue());
+			request.headers().set(item.getKey(), item.getValue());
 		}
 
-		CookieEncoder httpCookieEncoder = new CookieEncoder(false);
-
-		for(Entry<String, String> item : cookies.entrySet()) {
-			httpCookieEncoder.addCookie(item.getKey(), item.getValue());
-		}
-		request.setHeader(HttpHeaders.Names.COOKIE, httpCookieEncoder.encode());
+		request.headers().set(HttpHeaders.Names.COOKIE, ClientCookieEncoder.encode(cookies.values()));
 	}
 
 	/**
@@ -266,8 +229,7 @@ public class HttpClient {
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	private void addParameters(HttpRequest request, String queryEncodingCharset) throws DefaultException,
-			UnsupportedEncodingException {
+	private void addParameters(FullHttpRequest request, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
 
 		String address = uri.getScheme() + "://" + uri.getAuthority() + uri.getPath();
 
@@ -291,18 +253,18 @@ public class HttpClient {
 			}
 		}
 		else if(httpMethod == HttpMethod.POST) {
-			request.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/x-www-form-urlencoded");
+			request.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/x-www-form-urlencoded");
 
 			if(parameters.size() > 0) {
 				String paramsString = getParametersString(queryEncodingCharset);
 
-				Charset charset = queryEncodingCharset == null ? Charset.defaultCharset() : Charset
-						.forName(queryEncodingCharset);
+				Charset charset = queryEncodingCharset == null ? Charset.defaultCharset() : Charset.forName(queryEncodingCharset);
 
-				ChannelBuffer cb = ChannelBuffers.copiedBuffer(paramsString, charset);
+				ByteBuf content = Unpooled.copiedBuffer(paramsString, charset);
 
-				request.setHeader(HttpHeaders.Names.CONTENT_LENGTH, cb.readableBytes());
-				request.setContent(cb);
+				request.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
+				request.content().clear();
+				request.content().setBytes(0, content);
 			}
 		}
 		else {
@@ -323,14 +285,14 @@ public class HttpClient {
 	 * @param key
 	 * @param value
 	 */
-	public void setCookie(String key, String value) {
-		cookies.put(key, value);
+	public void setCookie(String name, String value) {
+		cookies.put(name, new DefaultCookie(name, value));
 	}
 
 	/**
 	 * @return
 	 */
-	public Map<String, String> getCookies() {
+	public Map<String, Cookie> getCookies() {
 		return cookies;
 	}
 
@@ -372,8 +334,7 @@ public class HttpClient {
 
 		for(Map.Entry<String, String> item : parameters.entrySet()) {
 
-			value = queryEncodingCharset != null ? java.net.URLEncoder.encode(item.getValue(), queryEncodingCharset)
-					: item.getValue();
+			value = queryEncodingCharset != null ? java.net.URLEncoder.encode(item.getValue(), queryEncodingCharset) : item.getValue();
 
 			query = query.append(item.getKey()).append("=").append(value).append("&");
 		}
@@ -385,39 +346,30 @@ public class HttpClient {
 	/**
 	 * @author anyflow
 	 */
-	public class HttpClientHandler extends SimpleChannelInboundHandler<HttpObject> {
+	public class HttpClientHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
 
 		private final MessageReceiver receiver;
-		private final HttpRequest request;
-		private HttpResponse response;
+		private final FullHttpRequest request;
+		private FullHttpResponse response;
 
-		public HttpClientHandler(MessageReceiver receiver, HttpRequest request) {
+		public HttpClientHandler(MessageReceiver receiver, FullHttpRequest request) {
 			this.receiver = receiver;
 			this.request = request;
 		}
 
-		public HttpResponse getResponse() {
+		public FullHttpResponse getResponse() {
 			return response;
 		}
 
-		@Override
-		public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-
-			response = (HttpResponse)e.getMessage();
-
-			debugResponse();
-
-			e.getChannel().close();
-
-			if(receiver != null) {
-				receiver.messageReceived(request, response);
-			}
-		}
-
-		/**
-		 * 
+		/*
+		 * (non-Javadoc)
+		 * @see
+		 * io.netty.channel.SimpleChannelInboundHandler#channelRead0(io.netty
+		 * .channel.ChannelHandlerContext, java.lang.Object)
 		 */
-		private void debugResponse() {
+		@Override
+		protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
+			this.response = msg;
 
 			logger.debug("[response] STATUS : " + response.getStatus());
 			logger.debug("[response] VERSION : " + response.getProtocolVersion());
@@ -430,28 +382,15 @@ public class HttpClient {
 				}
 			}
 
-			ChannelBuffer content = response.get
-			if(content.readable()) {
+			if(response.content().isReadable()) {
 				logger.debug("[response] CONTENT {");
-				logger.debug(content.toString(CharsetUtil.UTF_8));
+				logger.debug(response.content().toString(CharsetUtil.UTF_8));
 				logger.debug("[response] } END OF CONTENT");
 			}
-		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see
-		 * io.netty.channel.SimpleChannelInboundHandler#channelRead0(io.netty
-		 * .channel.ChannelHandlerContext, java.lang.Object)
-		 */
-		@Override
-		protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg) throws Exception {
-			if(msg instanceof HttpResponse) {
-				response = (HttpResponse)msg;
-
-				debugResponse();
+			if(receiver != null) {
+				receiver.messageReceived(request, response);
 			}
-
 		}
 	}
 }
