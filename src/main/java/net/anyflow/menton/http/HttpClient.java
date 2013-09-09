@@ -7,6 +7,8 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -90,8 +92,7 @@ public class HttpClient {
 	 * Request with encoding utf-8
 	 * 
 	 * @param receiver
-	 * @return if receiver is not null and the request processed successfully,
-	 *         returns HttpResponse instance, otherwise null;
+	 * @return if receiver is not null and the request processed successfully, returns HttpResponse instance, otherwise null;
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
@@ -104,10 +105,8 @@ public class HttpClient {
 	 * 
 	 * @param receiver
 	 * @param queryEncodingCharset
-	 *            query encoding charset. if it is null, no encoding will be
-	 *            applied.
-	 * @return if receiver is not null the request processed successfully,
-	 *         returns HttpResponse instance, otherwise null;
+	 *            query encoding charset. if it is null, no encoding will be applied.
+	 * @return if receiver is not null the request processed successfully, returns HttpResponse instance, otherwise null;
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
@@ -124,7 +123,7 @@ public class HttpClient {
 			return null;
 		}
 
-		EventLoopGroup group = new NioEventLoopGroup();
+		final EventLoopGroup group = new NioEventLoopGroup();
 
 		try {
 			final DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
@@ -164,19 +163,29 @@ public class HttpClient {
 
 			if(receiver == null) {
 				channel.closeFuture().sync();
+				group.shutdownGracefully();
+
 				return clientHandler.getResponse();
 			}
 			else {
+				channel.closeFuture().addListener(new ChannelFutureListener() {
+
+					@Override
+					public void operationComplete(ChannelFuture future) throws Exception {
+
+						group.shutdownGracefully();
+					}
+				});
+
 				return null;
 			}
 		}
 		catch(InterruptedException e) {
-			logger.error(e.getMessage(), e);
-			return null;
-		}
 
-		finally {
 			group.shutdownGracefully();
+			logger.error(e.getMessage(), e);
+
+			return null;
 		}
 	}
 
@@ -363,9 +372,7 @@ public class HttpClient {
 
 		/*
 		 * (non-Javadoc)
-		 * @see
-		 * io.netty.channel.SimpleChannelInboundHandler#channelRead0(io.netty
-		 * .channel.ChannelHandlerContext, java.lang.Object)
+		 * @see io.netty.channel.SimpleChannelInboundHandler#channelRead0(io.netty .channel.ChannelHandlerContext, java.lang.Object)
 		 */
 		@Override
 		protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
@@ -391,6 +398,8 @@ public class HttpClient {
 			if(receiver != null) {
 				receiver.messageReceived(request, response);
 			}
+
+			ctx.channel().close();
 		}
 	}
 }

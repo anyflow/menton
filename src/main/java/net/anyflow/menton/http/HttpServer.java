@@ -1,19 +1,15 @@
 package net.anyflow.menton.http;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.exception.DefaultException;
 
@@ -26,7 +22,6 @@ import org.slf4j.LoggerFactory;
 public class HttpServer {
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpServer.class);
-	private static ChannelGroup channelGroup;
 	private static EventLoopGroup bossGroup;
 	private static EventLoopGroup workerGroup;
 
@@ -41,7 +36,6 @@ public class HttpServer {
 
 		bossGroup = new NioEventLoopGroup();
 		workerGroup = new NioEventLoopGroup();
-		channelGroup = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
 		try {
 			ServerBootstrap bootstrap = new ServerBootstrap();
@@ -66,9 +60,7 @@ public class HttpServer {
 
 			});
 
-			Channel ch = bootstrap.bind(port).sync().channel();
-			channelGroup.add(ch);
-			// ch.closeFuture().sync();
+			bootstrap.bind(port).sync();
 
 			logger.info("Menton HTTP server started.");
 		}
@@ -79,11 +71,6 @@ public class HttpServer {
 	}
 
 	public static void stop() {
-		if(channelGroup != null) {
-			channelGroup.close().awaitUninterruptibly();
-			logger.debug("Channel group closed.");
-		}
-
 		if(bossGroup != null) {
 			bossGroup.shutdownGracefully().awaitUninterruptibly();
 			logger.debug("Boss event loop group shutdowned.");
