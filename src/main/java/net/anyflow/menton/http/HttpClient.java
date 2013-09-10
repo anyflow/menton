@@ -87,13 +87,11 @@ public class HttpClient {
 	 * 
 	 * @param isSynchronousMode
 	 * @param receiver
-	 * @return if isSynchronousMode is true and the request processed
-	 *         successfully, returns HttpResponse instance, otherwise null;
+	 * @return if isSynchronousMode is true and the request processed successfully, returns HttpResponse instance, otherwise null;
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver) throws DefaultException,
-			UnsupportedEncodingException {
+	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver) throws DefaultException, UnsupportedEncodingException {
 		return request(isSynchronousMode, receiver, "utf-8");
 	}
 
@@ -103,15 +101,13 @@ public class HttpClient {
 	 * @param isSynchronousMode
 	 * @param receiver
 	 * @param queryEncodingCharset
-	 *            query encoding charset. if it is null, no encoding will be
-	 *            applied.
-	 * @return if isSynchronousMode is true and the request processed
-	 *         successfully, returns HttpResponse instance, otherwise null;
+	 *            query encoding charset. if it is null, no encoding will be applied.
+	 * @return if isSynchronousMode is true and the request processed successfully, returns HttpResponse instance, otherwise null;
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver, String queryEncodingCharset)
-			throws DefaultException, UnsupportedEncodingException {
+	public HttpResponse request(boolean isSynchronousMode, final MessageReceiver receiver, String queryEncodingCharset) throws DefaultException,
+			UnsupportedEncodingException {
 
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
@@ -121,8 +117,8 @@ public class HttpClient {
 			return null;
 		}
 
-		final ClientBootstrap bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(
-				Executors.newCachedThreadPool(), Executors.newCachedThreadPool()));
+		final ClientBootstrap bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(Executors.newCachedThreadPool(),
+				Executors.newCachedThreadPool()));
 
 		final HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
 
@@ -245,8 +241,7 @@ public class HttpClient {
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	private void addParameters(HttpRequest request, String queryEncodingCharset) throws DefaultException,
-			UnsupportedEncodingException {
+	private void addParameters(HttpRequest request, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
 
 		String address = uri.getScheme() + "://" + uri.getAuthority() + uri.getPath();
 
@@ -275,8 +270,7 @@ public class HttpClient {
 			if(parameters.size() > 0) {
 				String paramsString = getParametersString(queryEncodingCharset);
 
-				Charset charset = queryEncodingCharset == null ? Charset.defaultCharset() : Charset
-						.forName(queryEncodingCharset);
+				Charset charset = queryEncodingCharset == null ? Charset.defaultCharset() : Charset.forName(queryEncodingCharset);
 
 				ChannelBuffer cb = ChannelBuffers.copiedBuffer(paramsString, charset);
 
@@ -327,7 +321,7 @@ public class HttpClient {
 	public Map<String, String> getParameters() {
 		return parameters;
 	}
-	
+
 	/**
 	 * @param key
 	 * @param value
@@ -351,8 +345,7 @@ public class HttpClient {
 
 		for(Map.Entry<String, String> item : parameters.entrySet()) {
 
-			value = queryEncodingCharset != null ? java.net.URLEncoder.encode(item.getValue(), queryEncodingCharset)
-					: item.getValue();
+			value = queryEncodingCharset != null ? java.net.URLEncoder.encode(item.getValue(), queryEncodingCharset) : item.getValue();
 
 			query = query.append(item.getKey()).append("=").append(value).append("&");
 		}
@@ -381,6 +374,8 @@ public class HttpClient {
 
 		@Override
 		public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+
+			if(e.getMessage() instanceof HttpResponse == false) { return; }
 
 			response = (HttpResponse)e.getMessage();
 
