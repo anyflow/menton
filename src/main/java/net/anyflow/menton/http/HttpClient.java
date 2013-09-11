@@ -28,6 +28,7 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.http.CookieEncoder;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
+import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpClientCodec;
 import org.jboss.netty.handler.codec.http.HttpContentDecompressor;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
@@ -135,6 +136,7 @@ public class HttpClient {
 				ChannelPipeline pipeline = org.jboss.netty.channel.Channels.pipeline();
 
 				pipeline.addLast("codec", new HttpClientCodec());
+				pipeline.addLast("chunkAggregator",new HttpChunkAggregator(1048576));
 				pipeline.addLast("inflateer", new HttpContentDecompressor());
 				pipeline.addLast("handler", clientHandler);
 
