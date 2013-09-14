@@ -27,6 +27,7 @@ import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.logging.LogLevel;
@@ -152,6 +153,7 @@ public class HttpClient {
 					}
 
 					p.addLast("codec", new HttpClientCodec());
+					p.addLast("chunkAggregator", new HttpObjectAggregator(1048576));
 					p.addLast("inflater", new HttpContentDecompressor());
 					p.addLast("handler", clientHandler);
 				}
@@ -273,7 +275,7 @@ public class HttpClient {
 
 				request.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
 				request.content().clear();
-				request.content().setBytes(0, content);
+				request.content().writeBytes(content);
 			}
 		}
 		else {

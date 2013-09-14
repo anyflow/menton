@@ -11,7 +11,6 @@ import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import net.anyflow.menton.Configurator;
-import net.anyflow.menton.exception.DefaultException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,8 +27,8 @@ public class HttpServer {
 	public HttpServer() {
 	}
 
-	public static void start(final ChannelHandler channelHandler) throws DefaultException {
-		start(channelHandler, Configurator.getHttpPort());
+	public static void start(final ChannelHandler channelHandler) {
+		start(channelHandler, Configurator.instance().getHttpPort());
 	}
 
 	public static void start(final ChannelHandler channelHandler, int port) {
@@ -44,18 +43,13 @@ public class HttpServer {
 
 				@Override
 				protected void initChannel(SocketChannel ch) throws Exception {
-
 					ch.pipeline().addLast("decoder", new HttpRequestDecoder());
-
-					// Uncomment the following line if you don't want to handle HttpChunks.
-					ch.pipeline().addLast("aggregator", new HttpRequestDecoder());
-
+					ch.pipeline().addLast("aggregator", new io.netty.handler.codec.http.HttpObjectAggregator(1048576)); // handle
+																														// HttpChunks.
 					ch.pipeline().addLast("encoder", new HttpResponseEncoder());
-
-					// Remove the following line if you don't want automatic content compression.
-					ch.pipeline().addLast("deflater", new HttpContentCompressor());
-
-					ch.pipeline().addLast("handler", new HttpServerHandler());
+					ch.pipeline().addLast("deflater", new HttpContentCompressor()); // automatic content
+																					// compression.
+					ch.pipeline().addLast("handler", channelHandler);
 				}
 
 			});

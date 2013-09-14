@@ -6,7 +6,7 @@
   <artifactId>menton</artifactId>
   <packaging>jar</packaging>
   <name>Menton</name>
-  <version>1.0.1</version>
+  <version>1.1.0</version>
   <description>Menton Framework</description>
   <url>https://github.com/anyflow/Menton</url>
 
@@ -16,8 +16,8 @@
 
   <!-- for build number management -->
   <scm>
-    <connection>scm:git:ssh://git@10.170.84.102:/pushrequester.git</connection>
-    <developerConnection>scm:git:ssh://git@10.170.84.102:/pushrequester.git</developerConnection>
+    <connection>scm:git:ssh://git@10.170.84.102:/menton.git</connection>
+    <developerConnection>scm:git:ssh://git@10.170.84.102:/menton.git</developerConnection>
     <tag>HEAD</tag>
     <url></url>
   </scm>
@@ -39,7 +39,7 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
-      <version>4.0.8.Final</version>
+      <version>4.0.9.Final</version>
     </dependency>
 
     <dependency>
