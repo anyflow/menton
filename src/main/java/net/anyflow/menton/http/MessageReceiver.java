@@ -3,9 +3,6 @@
  */
 package net.anyflow.menton.http;
 
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-
 /**
  * @author anyflow
  */
@@ -17,5 +14,5 @@ public interface MessageReceiver {
 	 * @param request
 	 * @param response
 	 */
-	void messageReceived(FullHttpRequest request, FullHttpResponse response);
+	void messageReceived(HttpRequest request, HttpResponse response);
 }

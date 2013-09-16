@@ -3,24 +3,15 @@
  */
 package net.anyflow.menton.http;
 
-import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.DecoderResult;
-import io.netty.handler.codec.http.Cookie;
-import io.netty.handler.codec.http.CookieDecoder;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.http.ServerCookieEncoder;
-import io.netty.util.CharsetUtil;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -29,7 +20,6 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.exception.DefaultException;
@@ -41,7 +31,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpServerHandler.class);
 
-	private FullHttpRequest request;
+	private HttpRequest request;
 	private RequestHandler requestHandler;
 	private String requestHandlerPackageRoot;
 
@@ -65,14 +55,15 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			return;
 		}
 
-		request = msg;
+		request = new HttpRequest(ctx.channel(), msg);
 
 		debugRequest(request);
 
 		logger.info(request.getUri().toString() + " requested.");
 
-		FullHttpResponse response = createDefaultResponse(request.headers().get(HttpHeaders.Names.COOKIE));
-		if(Configurator.instance().getProperty("allow_cross_domain").equalsIgnoreCase("yes")) {
+		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(), request.headers().get(HttpHeaders.Names.COOKIE));
+
+		if(Configurator.instance().getProperty("allow_cross_domain", "no").equalsIgnoreCase("yes")) {
 			response.headers().add("Access-Control-Allow-Origin", "*");
 			response.headers().add("Access-Control-Allow-Methods", "POST, GET");
 			response.headers().add("Access-Control-Allow-Headers", "X-PINGARUNER");
@@ -82,10 +73,10 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		try {
 			String path = (new URI(request.getUri())).getPath();
 
-			String content = requestHandler != null ? handleMethodTypeHandler(ctx.channel(), request, response, path) : handleClassTypeHandler(
-					ctx.channel(), request, response, path);
+			String content = requestHandler != null ? handleMethodTypeHandler(request, response, path) : handleClassTypeHandler(request, response,
+					path);
 
-			response.content().setBytes(0, Unpooled.copiedBuffer(content, CharsetUtil.UTF_8));
+			response.setContent(content);
 		}
 		catch(URISyntaxException e) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
@@ -110,14 +101,16 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		ctx.writeAndFlush(response);
-		if(keepAlive == false) {
-			ctx.close().addListener(ChannelFutureListener.CLOSE);
-		}
+		ctx.write(response);
+		// ctx.writeAndFlush(response);
+
+		// if(keepAlive == false) {
+		// ctx.close().addListener(ChannelFutureListener.CLOSE);
+		// }
 	}
 
-	private String handleClassTypeHandler(Channel channel, FullHttpRequest request, FullHttpResponse response, String requestedPath)
-			throws DefaultException, InstantiationException, IllegalAccessException {
+	private String handleClassTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws DefaultException,
+			InstantiationException, IllegalAccessException {
 
 		Class<? extends RequestHandler> handlerClass = RequestHandler.find(requestedPath, request.getMethod().toString(),
 				this.requestHandlerPackageRoot);
@@ -131,16 +124,16 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		else {
 			RequestHandler handler = handlerClass.newInstance();
 
-			handler.initialize(channel, request, response);
+			handler.initialize(request, response);
 
 			return handler.call();
 		}
 	}
 
-	private String handleMethodTypeHandler(Channel channel, FullHttpRequest request, FullHttpResponse response, String requestedPath)
-			throws DefaultException, IllegalAccessException, InvocationTargetException {
+	private String handleMethodTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws DefaultException,
+			IllegalAccessException, InvocationTargetException {
 
-		requestHandler.initialize(channel, request, response);
+		requestHandler.initialize(request, response);
 		Method handler = requestHandler.findHandler(requestedPath, request.getMethod().toString());
 
 		if(handler == null) {
@@ -152,26 +145,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		else {
 			return handler.invoke(requestHandler, (Object[])null).toString();
 		}
-	}
-
-	private FullHttpResponse createDefaultResponse(String requestCookie) {
-
-		FullHttpResponse ret = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.buffer());
-
-		ret.headers().add(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=UTF-8");
-
-		// Set request cookies
-		if(requestCookie != null) {
-			Set<Cookie> cookies = CookieDecoder.decode(requestCookie);
-			if(!cookies.isEmpty()) {
-				// Reset the cookies if necessary.
-				for(Cookie cookie : cookies) {
-					ret.headers().add(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.encode(cookie));
-				}
-			}
-		}
-
-		return ret;
 	}
 
 	@Override

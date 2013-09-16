@@ -1,9 +1,5 @@
 package net.anyflow.menton.http;
 
-import io.netty.channel.Channel;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -24,34 +20,8 @@ public class RequestHandler {
 
 	private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
 
-	private FullHttpRequest request;
-	private FullHttpResponse response;
-	private Channel channel;
-
-	public void initialize(Channel channel, FullHttpRequest request, FullHttpResponse response) {
-		this.request = request;
-		this.response = response;
-		this.channel = channel;
-	}
-
-	public FullHttpRequest getRequest() {
-		return request;
-	}
-
-	public FullHttpResponse getResponse() {
-		return response;
-	}
-
-	public Channel channel() {
-		return channel;
-	}
-
-	/**
-	 * @return processed content string
-	 */
-	public String call() {
-		throw new UnsupportedOperationException("Derived class's method should be called instead of this.");
-	}
+	private HttpRequest request;
+	private HttpResponse response;
 
 	/**
 	 * @author anyflow
@@ -76,6 +46,7 @@ public class RequestHandler {
 	/**
 	 * @param requestedPath
 	 * @param httpMethod
+	 * @param requestHandlerPackageRoot
 	 * @return
 	 */
 	public static Class<? extends RequestHandler> find(String requestedPath, String httpMethod, String requestHandlerPackageRoot) {
@@ -109,6 +80,26 @@ public class RequestHandler {
 
 		logger.error("Failed to find requestHandler.");
 		return null;
+	}
+
+	public void initialize(HttpRequest request, HttpResponse response) {
+		this.request = request;
+		this.response = response;
+	}
+
+	public HttpRequest httpRequest() {
+		return request;
+	}
+
+	public HttpResponse httpResponse() {
+		return response;
+	}
+
+	/**
+	 * @return processed content string
+	 */
+	public String call() {
+		throw new UnsupportedOperationException("Derived class's method should be called instead of this.");
 	}
 
 	/**

@@ -9,29 +9,17 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.ClientCookieEncoder;
 import io.netty.handler.codec.http.Cookie;
 import io.netty.handler.codec.http.DefaultCookie;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpClientCodec;
-import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.CharsetUtil;
 
 import java.io.UnsupportedEncodingException;
@@ -51,7 +39,7 @@ import org.slf4j.LoggerFactory;
  */
 public class HttpClient {
 
-	private static final Logger logger = LoggerFactory.getLogger(HttpClient.class);
+	static final Logger logger = LoggerFactory.getLogger(HttpClient.class);
 
 	private URI uri;
 
@@ -97,7 +85,7 @@ public class HttpClient {
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	public FullHttpResponse request(final MessageReceiver receiver) throws DefaultException, UnsupportedEncodingException {
+	public HttpResponse request(final MessageReceiver receiver) throws DefaultException, UnsupportedEncodingException {
 		return request(receiver, "utf-8");
 	}
 
@@ -111,12 +99,11 @@ public class HttpClient {
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	public FullHttpResponse request(final MessageReceiver receiver, String queryEncodingCharset) throws DefaultException,
-			UnsupportedEncodingException {
+	public HttpResponse request(final MessageReceiver receiver, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
 
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
-		final boolean ssl = false;
+		boolean ssl = false;
 
 		// TODO support HTTPS
 		if(!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https")) {
@@ -127,38 +114,16 @@ public class HttpClient {
 		final EventLoopGroup group = new NioEventLoopGroup();
 
 		try {
-			final DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath());
+			HttpRequest request = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath()));
 
 			setHeaders(request);
 			addParameters(request, queryEncodingCharset);
 			debugRequest(request);
 
-			final HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
+			HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
 
 			Bootstrap bootstrap = new Bootstrap();
-			bootstrap.group(group).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
-
-				@Override
-				protected void initChannel(SocketChannel ch) throws Exception {
-
-					ChannelPipeline p = ch.pipeline();
-
-					p.addLast("log", new LoggingHandler(LogLevel.INFO));
-
-					if(ssl) {
-						// TODO
-						// SSL related..
-
-						// p.addLast("ssl", new SslHandler(engine));
-					}
-
-					p.addLast("codec", new HttpClientCodec());
-					p.addLast("chunkAggregator", new HttpObjectAggregator(1048576));
-					p.addLast("inflater", new HttpContentDecompressor());
-					p.addLast("handler", clientHandler);
-				}
-
-			});
+			bootstrap.group(group).channel(NioSocketChannel.class).handler(new ClientChannelInitializer(clientHandler, ssl));
 
 			Channel channel = bootstrap.connect(uri.getHost(), getPort()).sync().channel();
 			channel.writeAndFlush(request);
@@ -167,14 +132,13 @@ public class HttpClient {
 				channel.closeFuture().sync();
 				group.shutdownGracefully();
 
-				return clientHandler.getResponse();
+				return clientHandler.httpResponse();
 			}
 			else {
 				channel.closeFuture().addListener(new ChannelFutureListener() {
 
 					@Override
 					public void operationComplete(ChannelFuture future) throws Exception {
-
 						group.shutdownGracefully();
 					}
 				});
@@ -228,6 +192,7 @@ public class HttpClient {
 		request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
 		request.headers().set(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
+
 		for(Entry<String, String> item : headers.entrySet()) {
 			request.headers().set(item.getKey(), item.getValue());
 		}
@@ -352,56 +317,5 @@ public class HttpClient {
 
 		query = query.deleteCharAt(query.length() - 1);
 		return query.toString();
-	}
-
-	/**
-	 * @author anyflow
-	 */
-	public class HttpClientHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
-
-		private final MessageReceiver receiver;
-		private final FullHttpRequest request;
-		private FullHttpResponse response;
-
-		public HttpClientHandler(MessageReceiver receiver, FullHttpRequest request) {
-			this.receiver = receiver;
-			this.request = request;
-		}
-
-		public FullHttpResponse getResponse() {
-			return response;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * @see io.netty.channel.SimpleChannelInboundHandler#channelRead0(io.netty .channel.ChannelHandlerContext, java.lang.Object)
-		 */
-		@Override
-		protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
-			this.response = msg;
-
-			logger.debug("[response] STATUS : " + response.getStatus());
-			logger.debug("[response] VERSION : " + response.getProtocolVersion());
-
-			if(!response.headers().isEmpty()) {
-				for(String name : response.headers().names()) {
-					for(String value : response.headers().getAll(name)) {
-						logger.debug("[response] HEADER : " + name + " = " + value);
-					}
-				}
-			}
-
-			if(response.content().isReadable()) {
-				logger.debug("[response] CONTENT {");
-				logger.debug(response.content().toString(CharsetUtil.UTF_8));
-				logger.debug("[response] } END OF CONTENT");
-			}
-
-			if(receiver != null) {
-				receiver.messageReceived(request, response);
-			}
-
-			ctx.channel().close();
-		}
 	}
 }
