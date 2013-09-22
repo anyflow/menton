@@ -8,6 +8,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpContentDecompressor;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
@@ -42,7 +43,7 @@ public class ClientChannelInitializer extends ChannelInitializer<SocketChannel> 
 		}
 
 		p.addLast("codec", new HttpClientCodec());
-		// p.addLast("chunkAggregator", new HttpObjectAggregator(1048576));
+		p.addLast("chunkAggregator", new HttpObjectAggregator(1048576));
 		p.addLast("inflater", new HttpContentDecompressor());
 		p.addLast("handler", clientHandler);
 	}

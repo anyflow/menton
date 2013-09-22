@@ -40,28 +40,27 @@ public class HttpClientHandler extends SimpleChannelInboundHandler<FullHttpRespo
 		if(ctx.channel().isActive() == false) { return; }
 
 		response = HttpResponse.createFrom(msg, ctx.channel());
+		msg.retain(); // This is mandatory due to the above response creation.. but no exact reason founded...
 
-		HttpClient.logger.debug("[response] STATUS : " + response.getStatus());
-		HttpClient.logger.debug("[response] VERSION : " + response.getProtocolVersion());
+		logger.debug("[response] STATUS : " + response.getStatus());
+		logger.debug("[response] VERSION : " + response.getProtocolVersion());
 
 		if(!response.headers().isEmpty()) {
 			for(String name : response.headers().names()) {
 				for(String value : response.headers().getAll(name)) {
-					HttpClient.logger.debug("[response] HEADER : " + name + " = " + value);
+					logger.debug("[response] HEADER : " + name + " = " + value);
 				}
 			}
 		}
 
-		if(response.content().isReadable()) {
-			HttpClient.logger.debug("[response] CONTENT {");
-			HttpClient.logger.debug(response.content().toString(CharsetUtil.UTF_8));
-			HttpClient.logger.debug("[response] } END OF CONTENT");
-		}
+		logger.debug("[response] THE FIRST 100 characters OF CONTENT : {}...", response.content().toString(CharsetUtil.UTF_8).substring(0, 99));
 
 		if(receiver != null) {
 			request.setChannel(ctx.channel());
 			receiver.messageReceived(request, response);
 		}
+
+		ctx.channel().close();
 	}
 
 	@Override
