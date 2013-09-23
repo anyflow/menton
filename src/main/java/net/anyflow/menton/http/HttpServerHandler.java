@@ -3,26 +3,6 @@
  */
 package net.anyflow.menton.http;
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.DecoderResult;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.QueryStringDecoder;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import net.anyflow.menton.Configurator;
-import net.anyflow.menton.exception.DefaultException;
 
 /**
  * @author anyflow
@@ -101,12 +81,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		ctx.write(response);
-		// ctx.writeAndFlush(response);
-
-		// if(keepAlive == false) {
-		// ctx.close().addListener(ChannelFutureListener.CLOSE);
-		// }
+		// ctx.write(response);
+		ChannelFuture future = ctx.writeAndFlush(response);
+		future.addListener(ChannelFutureListener.CLOSE);
 	}
 
 	private String handleClassTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws DefaultException,
@@ -155,7 +132,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-		cause.printStackTrace();
+		logger.error(cause.getMessage(), cause);
 		ctx.close();
 	}
 
