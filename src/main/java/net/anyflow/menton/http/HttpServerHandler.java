@@ -34,15 +34,18 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpServerHandler.class);
 
 	private HttpRequest request;
-	private RequestHandler requestHandler;
 	private String requestHandlerPackageRoot;
+	private Class<RequestHandler> requestHandlerClass;
 
 	public HttpServerHandler(String requestHandlerPackageRoot) {
 		this.requestHandlerPackageRoot = requestHandlerPackageRoot;
 	}
 
-	public HttpServerHandler(RequestHandler requestHandler) {
-		this.requestHandler = requestHandler;
+	/**
+	 * @param requestHandlerClass
+	 */
+	public HttpServerHandler(Class<RequestHandler> requestHandlerClass) {
+		this.requestHandlerClass = requestHandlerClass;
 	}
 
 	/*
@@ -75,8 +78,8 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		try {
 			String path = (new URI(request.getUri())).getPath();
 
-			String content = requestHandler != null ? handleMethodTypeHandler(request, response, path) : handleClassTypeHandler(request, response,
-					path);
+			String content = requestHandlerClass != null ? handleMethodTypeHandler(request, response, path) : handleClassTypeHandler(request,
+					response, path);
 
 			response.setContent(content);
 		}
@@ -89,6 +92,18 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			logger.error("Generating new request handler instance failed.", e);
 		}
 		catch(IllegalAccessException e) {
+			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			logger.error("Generating new request handler instance failed.", e);
+		}
+		catch(InvocationTargetException e) {
+			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			logger.error("Generating new request handler instance failed.", e);
+		}
+		catch(IllegalArgumentException e) {
+			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			logger.error("Generating new request handler instance failed.", e);
+		}
+		catch(SecurityException e) {
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			logger.error("Generating new request handler instance failed.", e);
 		}
@@ -130,7 +145,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	}
 
 	private String handleMethodTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws DefaultException,
-			IllegalAccessException, InvocationTargetException {
+			IllegalAccessException, InvocationTargetException, IllegalArgumentException, SecurityException, InstantiationException {
+
+		RequestHandler requestHandler = (RequestHandler)requestHandlerClass.getConstructors()[0].newInstance();
 
 		requestHandler.initialize(request, response);
 		Method handler = requestHandler.findHandler(requestedPath, request.getMethod().toString());

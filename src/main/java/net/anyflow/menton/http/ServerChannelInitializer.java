@@ -3,7 +3,6 @@
  */
 package net.anyflow.menton.http;
 
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpContentCompressor;
@@ -17,13 +16,21 @@ import io.netty.handler.logging.LoggingHandler;
  */
 public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-	ChannelHandler channelHandler;
+	private String requestHandlerPackageRoot;
+	private Class<RequestHandler> requestHandlerClass;
 
 	/**
 	 * @param clientHandler
 	 */
-	public ServerChannelInitializer(ChannelHandler channelHandler) {
-		this.channelHandler = channelHandler;
+	public ServerChannelInitializer(String requestHandlerPackageRoot) {
+		this.requestHandlerPackageRoot = requestHandlerPackageRoot;
+	}
+
+	/**
+	 * @param requestHandlerClass
+	 */
+	public ServerChannelInitializer(Class<RequestHandler> requestHandlerClass) {
+		this.requestHandlerClass = requestHandlerClass;
 	}
 
 	@Override
@@ -34,6 +41,7 @@ public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> 
 		ch.pipeline().addLast("aggregator", new io.netty.handler.codec.http.HttpObjectAggregator(1048576)); // handle HttpChunks.
 		ch.pipeline().addLast("encoder", new HttpResponseEncoder());
 		ch.pipeline().addLast("deflater", new HttpContentCompressor()); // automatic content compression.
-		ch.pipeline().addLast("handler", channelHandler);
+		ch.pipeline().addLast("handler",
+				requestHandlerClass != null ? new HttpServerHandler(requestHandlerClass) : new HttpServerHandler(requestHandlerPackageRoot));
 	}
 }

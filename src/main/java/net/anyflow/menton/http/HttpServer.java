@@ -1,10 +1,10 @@
 package net.anyflow.menton.http;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import net.anyflow.menton.Configurator;
 
 import org.slf4j.Logger;
@@ -22,19 +22,35 @@ public class HttpServer {
 	public HttpServer() {
 	}
 
-	public static void start(final ChannelHandler channelHandler) {
-		start(channelHandler, Configurator.instance().getHttpPort());
+	public static void start(String requestHandlerPackageRoot) {
+		start(requestHandlerPackageRoot, null, Configurator.instance().getHttpPort());
 	}
 
-	public static void start(final ChannelHandler channelHandler, int port) {
+	public static void start(Class<RequestHandler> requestHandlerClass) {
+		start(null, requestHandlerClass, Configurator.instance().getHttpPort());
+	}
 
-		bossGroup = new NioEventLoopGroup();
-		workerGroup = new NioEventLoopGroup();
+	public static void start(String requestHandlerPackageRoot, int port) {
+		start(requestHandlerPackageRoot, null, port);
+	}
+
+	public static void start(Class<RequestHandler> requestHandlerClass, int port) {
+		start(null, requestHandlerClass, port);
+	}
+
+	private static void start(String requestHandlerPackageRoot, Class<RequestHandler> requestHandlerClass, int port) {
+		Thread.currentThread().setName("server/main");
+
+		bossGroup = new NioEventLoopGroup(0, new DefaultThreadFactory("server/boss"));
+		workerGroup = new NioEventLoopGroup(0, new DefaultThreadFactory("server/worker"));
 
 		try {
 			ServerBootstrap bootstrap = new ServerBootstrap();
 
-			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(new ServerChannelInitializer(channelHandler));
+			ServerChannelInitializer serverChannelInitializer = requestHandlerClass != null ? new ServerChannelInitializer(requestHandlerClass)
+					: new ServerChannelInitializer(requestHandlerPackageRoot);
+
+			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(serverChannelInitializer);
 			bootstrap.bind(port).sync();
 
 			logger.info("Menton HTTP server started.");

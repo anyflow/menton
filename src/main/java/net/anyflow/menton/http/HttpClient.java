@@ -21,6 +21,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
+import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -101,6 +102,8 @@ public class HttpClient {
 	 */
 	public HttpResponse request(final MessageReceiver receiver, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
 
+		Thread.currentThread().setName("client/main");
+
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
 		boolean ssl = false;
@@ -111,7 +114,7 @@ public class HttpClient {
 			return null;
 		}
 
-		final EventLoopGroup group = new NioEventLoopGroup();
+		final EventLoopGroup group = new NioEventLoopGroup(0, new DefaultThreadFactory("client"));
 
 		try {
 			HttpRequest request = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath()));
