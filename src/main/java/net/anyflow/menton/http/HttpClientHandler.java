@@ -40,7 +40,6 @@ public class HttpClientHandler extends SimpleChannelInboundHandler<FullHttpRespo
 		if(ctx.channel().isActive() == false) { return; }
 
 		response = HttpResponse.createFrom(msg, ctx.channel());
-		msg.retain(); // This is mandatory due to the above response creation.. but no exact reason founded...
 
 		logger.debug("[response] STATUS : " + response.getStatus());
 		logger.debug("[response] VERSION : " + response.getProtocolVersion());

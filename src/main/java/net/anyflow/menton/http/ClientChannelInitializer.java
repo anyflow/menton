@@ -43,8 +43,8 @@ public class ClientChannelInitializer extends ChannelInitializer<SocketChannel> 
 		}
 
 		p.addLast("codec", new HttpClientCodec());
-		p.addLast("chunkAggregator", new HttpObjectAggregator(1048576));
 		p.addLast("inflater", new HttpContentDecompressor());
+		p.addLast("chunkAggregator", new HttpObjectAggregator(1048576));
 		p.addLast("handler", clientHandler);
 	}
 }
