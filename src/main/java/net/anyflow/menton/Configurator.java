@@ -3,6 +3,7 @@
  */
 package net.anyflow.menton;
 
+import io.netty.handler.logging.LogLevel;
 
 /**
  * @author anyflow
@@ -71,5 +72,23 @@ public class Configurator extends java.util.Properties {
 		}
 
 		return ret;
+	}
+
+	public LogLevel getLogLevel() {
+		if(logger.isTraceEnabled()) {
+			return LogLevel.TRACE;
+		}
+		else if(logger.isDebugEnabled()) {
+			return LogLevel.DEBUG;
+		}
+		else if(logger.isInfoEnabled()) {
+			return LogLevel.INFO;
+		}
+		else if(logger.isWarnEnabled()) {
+			return LogLevel.WARN;
+		}
+		else {
+			return LogLevel.DEBUG;
+		}
 	}
 }

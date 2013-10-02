@@ -41,20 +41,22 @@ public class HttpClientHandler extends SimpleChannelInboundHandler<FullHttpRespo
 
 		response = HttpResponse.createFrom(msg, ctx.channel());
 
-		logger.debug("[response] STATUS : " + response.getStatus());
-		logger.debug("[response] VERSION : " + response.getProtocolVersion());
+		if(logger.isDebugEnabled()) {
+			logger.debug("[response] STATUS : " + response.getStatus());
+			logger.debug("[response] VERSION : " + response.getProtocolVersion());
 
-		if(!response.headers().isEmpty()) {
-			for(String name : response.headers().names()) {
-				for(String value : response.headers().getAll(name)) {
-					logger.debug("[response] HEADER : " + name + " = " + value);
+			if(!response.headers().isEmpty()) {
+				for(String name : response.headers().names()) {
+					for(String value : response.headers().getAll(name)) {
+						logger.debug("[response] HEADER : " + name + " = " + value);
+					}
 				}
 			}
-		}
 
-		String content = response.content().toString(CharsetUtil.UTF_8);
-		int index = content.length() < 100 ? content.length() : 99;
-		logger.debug("[response] THE FIRST 100 characters OF CONTENT : {}...", content.substring(0, index));
+			String content = response.content().toString(CharsetUtil.UTF_8);
+			int index = content.length() < 100 ? content.length() : 99;
+			logger.debug("[response] THE FIRST 100 characters OF CONTENT : {}...", content.substring(0, index));
+		}
 
 		if(receiver != null) {
 			request.setChannel(ctx.channel());

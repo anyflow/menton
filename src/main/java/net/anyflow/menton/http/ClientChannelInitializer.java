@@ -3,13 +3,13 @@
  */
 package net.anyflow.menton.http;
 
+import net.anyflow.menton.Configurator;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
 /**
@@ -33,12 +33,11 @@ public class ClientChannelInitializer extends ChannelInitializer<SocketChannel> 
 
 		ChannelPipeline p = ch.pipeline();
 
-		p.addLast("log", new LoggingHandler(LogLevel.INFO));
+		p.addLast("log", new LoggingHandler("menton/client", Configurator.instance().getLogLevel()));
 
 		if(ssl) {
 			// TODO
 			// SSL related..
-
 			// p.addLast("ssl", new SslHandler(engine));
 		}
 

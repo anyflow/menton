@@ -171,6 +171,8 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	}
 
 	private void debugRequest(HttpRequest request) {
+		if(logger.isDebugEnabled() == false) { return; }
+
 		StringBuilder buf = new StringBuilder();
 
 		buf.setLength(0);

@@ -121,7 +121,15 @@ public class HttpClient {
 
 			setHeaders(request);
 			addParameters(request, queryEncodingCharset);
-			debugRequest(request);
+			if(logger.isDebugEnabled()) {
+				logger.debug("[request] URI : {}", request.getUri());
+				logger.debug("[request] CONTENT : {}", request.content().toString(CharsetUtil.UTF_8));
+				logger.debug("[request] HTTPMETHOD : {}", request.getMethod().toString());
+
+				for(String name : request.headers().names()) {
+					logger.debug("[request] HEADER : " + name + " = " + request.headers().get(name));
+				}
+			}
 
 			HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
 
@@ -155,21 +163,6 @@ public class HttpClient {
 			logger.error(e.getMessage(), e);
 
 			return null;
-		}
-	}
-
-	/**
-	 * @param request
-	 */
-	private void debugRequest(final FullHttpRequest request) {
-		logger.debug("[request] URI : {}", request.getUri());
-		logger.debug("[request] CONTENT : {}", request.content().toString(CharsetUtil.UTF_8));
-		logger.debug("[request] HTTPMETHOD : {}", request.getMethod().toString());
-
-		if(request.headers().isEmpty() == true) { return; }
-
-		for(String name : request.headers().names()) {
-			logger.debug("[request] HEADER : " + name + " = " + request.headers().get(name));
 		}
 	}
 
