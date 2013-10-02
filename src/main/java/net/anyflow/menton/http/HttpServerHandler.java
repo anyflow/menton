@@ -3,8 +3,6 @@
  */
 package net.anyflow.menton.http;
 
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.DecoderResult;
@@ -68,13 +66,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(), request.headers().get(HttpHeaders.Names.COOKIE));
 
-		if(Configurator.instance().getProperty("allow_cross_domain", "no").equalsIgnoreCase("yes")) {
-			response.headers().add("Access-Control-Allow-Origin", "*");
-			response.headers().add("Access-Control-Allow-Methods", "POST, GET");
-			response.headers().add("Access-Control-Allow-Headers", "X-PINGARUNER");
-			response.headers().add("Access-Control-Max-Age", "1728000");
-		}
-
 		try {
 			String path = (new URI(request.getUri())).getPath();
 
@@ -118,9 +109,14 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		// ctx.write(response);
-		ChannelFuture future = ctx.writeAndFlush(response);
-		future.addListener(ChannelFutureListener.CLOSE);
+		if(Configurator.instance().getProperty("allow_cross_domain", "no").equalsIgnoreCase("yes")) {
+			response.headers().add("Access-Control-Allow-Origin", "*");
+			response.headers().add("Access-Control-Allow-Methods", "POST, GET");
+			response.headers().add("Access-Control-Allow-Headers", "X-PINGARUNER");
+			response.headers().add("Access-Control-Max-Age", "1728000");
+		}
+
+		ctx.write(response);
 	}
 
 	private String handleClassTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws DefaultException,
@@ -165,7 +161,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 	@Override
 	public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-		ctx.fireChannelReadComplete();
 		ctx.flush();
 	}
 

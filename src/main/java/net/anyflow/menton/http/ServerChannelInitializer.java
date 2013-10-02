@@ -36,12 +36,16 @@ public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> 
 	@Override
 	protected void initChannel(SocketChannel ch) throws Exception {
 
+		// ChannelHandler adding order is 'very' import.
+		// HttpServerHandler should be added last after outbound handlers in spite of it is inbound handler.
+		// Otherwise, outbound handlers will not be handled.
+
 		ch.pipeline().addLast("log", new LoggingHandler(LogLevel.DEBUG));
 		ch.pipeline().addLast("decoder", new HttpRequestDecoder());
-		ch.pipeline().addLast("aggregator", new io.netty.handler.codec.http.HttpObjectAggregator(1048576)); // handle HttpChunks.
+		ch.pipeline().addLast("aggregator", new io.netty.handler.codec.http.HttpObjectAggregator(1048576)); // Handle HttpChunks.
 		ch.pipeline().addLast("encoder", new HttpResponseEncoder());
-		ch.pipeline().addLast("deflater", new HttpContentCompressor()); // automatic content compression.
-		ch.pipeline().addLast("handler",
+		ch.pipeline().addLast("deflater", new HttpContentCompressor()); // Automatic content compression.
+		ch.pipeline().addLast("bizHandler",
 				requestHandlerClass != null ? new HttpServerHandler(requestHandlerClass) : new HttpServerHandler(requestHandlerPackageRoot));
 	}
 }

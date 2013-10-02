@@ -53,7 +53,9 @@ public class HttpClientHandler extends SimpleChannelInboundHandler<FullHttpRespo
 			}
 		}
 
-		logger.debug("[response] THE FIRST 100 characters OF CONTENT : {}...", response.content().toString(CharsetUtil.UTF_8).substring(0, 99));
+		String content = response.content().toString(CharsetUtil.UTF_8);
+		int index = content.length() < 100 ? content.length() : 99;
+		logger.debug("[response] THE FIRST 100 characters OF CONTENT : {}...", content.substring(0, index));
 
 		if(receiver != null) {
 			request.setChannel(ctx.channel());
