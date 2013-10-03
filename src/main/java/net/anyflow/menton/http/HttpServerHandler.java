@@ -84,23 +84,23 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		}
 		catch(IllegalAccessException e) {
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Generating new request handler instance failed.", e);
+			logger.error("Failed to access business logic handler.", e);
 		}
 		catch(InvocationTargetException e) {
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Generating new request handler instance failed.", e);
+			logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
 		}
 		catch(IllegalArgumentException e) {
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Generating new request handler instance failed.", e);
+			logger.error("Failed to access business logic handler.", e);
 		}
 		catch(SecurityException e) {
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Generating new request handler instance failed.", e);
+			logger.error("Failed to access business logic handler.", e);
 		}
 		catch(Exception e) {
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Unknown exception was thrown", e);
+			logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
 		}
 
 		boolean keepAlive = request.headers().get(HttpHeaders.Names.CONNECTION) == HttpHeaders.Values.KEEP_ALIVE;
