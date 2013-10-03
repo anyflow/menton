@@ -60,6 +60,21 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		return (new QueryStringDecoder(queryStringParam)).parameters();
 	}
 
+	/**
+	 * Get single parameter. In case of multiple values, the method returns the first.
+	 * 
+	 * @param name
+	 *            parameter name.
+	 * @return The first value of the parameter name. If it does not exist, it returns an empty string.
+	 */
+	public String parameter(String name) {
+		Map<String, List<String>> params = parameters();
+
+		if(params.containsKey(name) == false || params.get(name).size() <= 0) { return ""; }
+
+		return parameters().get(name).get(0);
+	}
+
 	public Channel channel() {
 		return channel;
 	}
