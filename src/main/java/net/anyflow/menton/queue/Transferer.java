@@ -10,7 +10,10 @@ public interface Transferer<Message> {
 
 	boolean transfer(Message target);
 
-	int getMaxProcessingSize();
+	/**
+	 * @return max processing message count in a cycle
+	 */
+	int maxProcessingSize();
 
 	/**
 	 * @return transfer task timeout in millisecond

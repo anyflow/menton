@@ -28,24 +28,28 @@ public class MessageQueue<Element> {
 	private final Persister<Element> persister;
 	private final Transferer<Element> transferer;
 
+	public MessageQueue(Persister<Element> persister, Transferer<Element> transferer) {
+		this(persister, transferer, null, null);
+	}
+
 	public MessageQueue(Persister<Element> persister, Transferer<Element> transferer, Comparator<Element> peristComparator,
 			Comparator<Element> transferComparator) {
 
 		this.persister = persister;
 		this.transferer = transferer;
-		guestsForPersisting = new PriorityBlockingQueue<Element>(5, peristComparator);
-		guestsForTransfering = new PriorityBlockingQueue<Element>(5, transferComparator);
 
+		guestsForPersisting = new PriorityBlockingQueue<Element>(persister.maxProcessingSize(), peristComparator);
+		guestsForTransfering = new PriorityBlockingQueue<Element>(transferer.maxProcessingSize(), transferComparator);
 	}
 
 	public void start() {
 		Executors.newSingleThreadExecutor().execute(
-				new MessagePump(new PersisterHandler(persister), guestsForPersisting, persister.getMaxProcessingSize()));
+				new MessagePump(new PersisterHandler(persister), guestsForPersisting, persister.maxProcessingSize()));
 		Executors.newSingleThreadExecutor().execute(
-				new MessagePump(new TransfererHandler(transferer), guestsForTransfering, transferer.getMaxProcessingSize()));
+				new MessagePump(new TransfererHandler(transferer), guestsForTransfering, transferer.maxProcessingSize()));
 
-		logger.info("Message Queue started with max processing size DB : {}, PushSender : {}.", persister.getMaxProcessingSize(),
-				transferer.getMaxProcessingSize());
+		logger.info("Message Queue started with max processing size DB : {}, PushSender : {}.", persister.maxProcessingSize(),
+				transferer.maxProcessingSize());
 	}
 
 	/**
@@ -56,7 +60,6 @@ public class MessageQueue<Element> {
 	public void queueForPersisting(Element element) {
 
 		if(guestsForPersisting.contains(element)) { return; }
-
 		if(guestsForPersisting.offer(element) == false) { return; }
 
 		synchronized(guestsForPersisting) {
