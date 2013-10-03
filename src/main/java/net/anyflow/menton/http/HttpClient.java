@@ -26,7 +26,9 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -61,14 +63,14 @@ public class HttpClient {
 
 	private HttpMethod httpMethod;
 	private final Map<String, Cookie> cookies;
-	private final Map<String, String> parameters;
+	private final Map<String, List<String>> parameters;
 	private final Map<String, String> headers;
 
 	public HttpClient() {
 		httpMethod = HttpMethod.GET;
 
 		cookies = new HashMap<String, Cookie>();
-		parameters = new HashMap<String, String>();
+		parameters = new HashMap<String, List<String>>();
 		headers = new HashMap<String, String>();
 	}
 
@@ -83,10 +85,10 @@ public class HttpClient {
 	 * 
 	 * @param receiver
 	 * @return if receiver is not null and the request processed successfully, returns HttpResponse instance, otherwise null;
-	 * @throws DefaultException
+	 * @throws IllegalArgumentException
 	 * @throws UnsupportedEncodingException
 	 */
-	public HttpResponse request(final MessageReceiver receiver) throws DefaultException, UnsupportedEncodingException {
+	public HttpResponse request(final MessageReceiver receiver) throws IllegalArgumentException, UnsupportedEncodingException {
 		return request(receiver, "utf-8");
 	}
 
@@ -100,7 +102,8 @@ public class HttpClient {
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	public HttpResponse request(final MessageReceiver receiver, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
+	public HttpResponse request(final MessageReceiver receiver, String queryEncodingCharset) throws IllegalArgumentException,
+			UnsupportedEncodingException {
 
 		Thread.currentThread().setName("client/main");
 
@@ -116,27 +119,28 @@ public class HttpClient {
 
 		final EventLoopGroup group = new NioEventLoopGroup(0, new DefaultThreadFactory("client"));
 
-		try {
-			HttpRequest request = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath()));
+		HttpRequest request = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath()));
 
-			setHeaders(request);
-			addParameters(request, queryEncodingCharset);
-			if(logger.isDebugEnabled()) {
-				logger.debug("[request] URI : {}", request.getUri());
-				logger.debug("[request] CONTENT : {}", request.content().toString(CharsetUtil.UTF_8));
-				logger.debug("[request] HTTPMETHOD : {}", request.getMethod().toString());
+		setHeaders(request);
+		addParameters(request, queryEncodingCharset);
 
-				for(String name : request.headers().names()) {
-					logger.debug("[request] HEADER : " + name + " = " + request.headers().get(name));
-				}
+		if(logger.isDebugEnabled()) {
+			logger.debug("[request] URI : {}", request.getUri());
+			logger.debug("[request] CONTENT : {}", request.content().toString(CharsetUtil.UTF_8));
+			logger.debug("[request] HTTPMETHOD : {}", request.getMethod().toString());
+
+			for(String name : request.headers().names()) {
+				logger.debug("[request] HEADER : " + name + " = " + request.headers().get(name));
 			}
+		}
 
-			HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
+		HttpClientHandler clientHandler = new HttpClientHandler(receiver, request);
 
-			Bootstrap bootstrap = new Bootstrap();
-			bootstrap.group(group).channel(NioSocketChannel.class).handler(new ClientChannelInitializer(clientHandler, ssl));
+		Bootstrap bootstrap = new Bootstrap();
+		bootstrap.group(group).channel(NioSocketChannel.class).handler(new ClientChannelInitializer(clientHandler, ssl));
 
-			Channel channel = bootstrap.connect(uri.getHost(), getPort()).sync().channel();
+		try {
+			Channel channel = bootstrap.connect(uri.getHost(), port()).sync().channel();
 			channel.writeAndFlush(request);
 
 			if(receiver == null) {
@@ -166,7 +170,7 @@ public class HttpClient {
 		}
 	}
 
-	private int getPort() {
+	private int port() {
 		String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
 
 		int port = uri.getPort();
@@ -184,14 +188,18 @@ public class HttpClient {
 
 		String host = uri.getHost() == null ? "localhost" : uri.getHost();
 
-		request.headers().set(HttpHeaders.Names.HOST, host);
-		request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-		request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
-		request.headers().set(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
-
 		for(Entry<String, String> item : headers.entrySet()) {
 			request.headers().set(item.getKey(), item.getValue());
 		}
+
+		if(httpMethod == HttpMethod.POST && headers.containsKey(HttpHeaders.Names.CONTENT_TYPE) == false) {
+			request.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/x-www-form-urlencoded");
+		}
+
+		request.headers().set(HttpHeaders.Names.HOST, host);
+		request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+		request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP + ", " + HttpHeaders.Values.DEFLATE);
+		request.headers().set(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
 
 		request.headers().set(HttpHeaders.Names.COOKIE, ClientCookieEncoder.encode(cookies.values()));
 	}
@@ -201,7 +209,7 @@ public class HttpClient {
 	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	private void addParameters(FullHttpRequest request, String queryEncodingCharset) throws DefaultException, UnsupportedEncodingException {
+	private void addParameters(FullHttpRequest request, String queryEncodingCharset) throws IllegalArgumentException, UnsupportedEncodingException {
 
 		String address = uri.getScheme() + "://" + uri.getAuthority() + uri.getPath();
 
@@ -216,31 +224,35 @@ public class HttpClient {
 						continue;
 					}
 
-					parameters.put(tokens[i - 1], tokens[i]);
+					if(parameters.containsKey(tokens[i - 1])) {
+						if(tokens[i - 1].endsWith("[]") == false) { throw new IllegalArgumentException("A parameter is duplicated : " + tokens[i - 1]); }
+						parameters.get(tokens[i - 1]).add(tokens[i]);
+					}
+					else {
+						List<String> value = new ArrayList<String>();
+						value.add(tokens[i]);
+						parameters.put(tokens[i - 1], value);
+					}
 				}
 			}
 
 			if(parameters.size() > 0) {
-				address += "?" + getParametersString(queryEncodingCharset);
+				address += "?" + makeQueryString(queryEncodingCharset);
 			}
 		}
-		else if(httpMethod == HttpMethod.POST) {
-			request.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/x-www-form-urlencoded");
+		else if(httpMethod == HttpMethod.POST && parameters.size() > 0) {
+			String paramsString = makeQueryString(queryEncodingCharset);
 
-			if(parameters.size() > 0) {
-				String paramsString = getParametersString(queryEncodingCharset);
+			Charset charset = queryEncodingCharset == null ? Charset.defaultCharset() : Charset.forName(queryEncodingCharset);
 
-				Charset charset = queryEncodingCharset == null ? Charset.defaultCharset() : Charset.forName(queryEncodingCharset);
+			ByteBuf content = Unpooled.copiedBuffer(paramsString, charset);
 
-				ByteBuf content = Unpooled.copiedBuffer(paramsString, charset);
-
-				request.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
-				request.content().clear();
-				request.content().writeBytes(content);
-			}
+			request.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
+			request.content().clear();
+			request.content().writeBytes(content);
 		}
 		else {
-			throw new DefaultException("only GET/POST methods are supported.");
+			throw new IllegalArgumentException("only GET/POST methods are supported.");
 		}
 
 		request.setUri(address);
@@ -264,51 +276,82 @@ public class HttpClient {
 	/**
 	 * @return
 	 */
-	public Map<String, Cookie> getCookies() {
+	public Map<String, Cookie> cookies() {
 		return cookies;
 	}
 
 	/**
-	 * @param key
-	 * @param value
+	 * Add an array parameter values. The method replace the former value if the parameter is present.
+	 * 
+	 * @param name
+	 * @param values
+	 * @throws IllegalArgumentException
+	 *             is thrown in case of array parameter name(which is ended with '[]') passed.
 	 */
-	public void addParameter(String key, String value) {
-		parameters.put(key, value);
+	public void addParameter(String name, List<String> values) throws IllegalArgumentException {
+		if(name.endsWith("[]") == false) { throw new IllegalArgumentException("For non-array parameter, use addParameter(String, String)."); }
+
+		parameters.remove(name);
+
+		parameters.put(name, values);
 	}
 
 	/**
-	 * @return
+	 * Add a non-array parameter value. The method replace the former value if the parameter is present.
+	 * 
+	 * @param name
+	 * @param value
+	 * @throws IllegalArgumentException
+	 *             is thrown in case of array parameter name(which is ended with '[]') passed.
 	 */
-	public Map<String, String> getParameters() {
+	public void addParameter(String name, String value) throws IllegalArgumentException {
+		if(name.endsWith("[]")) { throw new IllegalArgumentException("For array parameter, use addParameter(String, List<String>)."); }
+
+		parameters.remove(name);
+
+		List<String> values = new ArrayList<String>();
+		values.add(value);
+		parameters.put(name, values);
+	}
+
+	/**
+	 * @return parameter list.
+	 */
+	public Map<String, List<String>> parameters() {
 		return parameters;
 	}
 
 	/**
+	 * Add a header value. The method replace the former value if the header is present.
+	 * 
 	 * @param key
 	 * @param value
 	 */
 	public void addHeader(String key, String value) {
+		headers.remove(key);
 		headers.put(key, value);
 	}
 
 	/**
-	 * @return
+	 * @return headers
 	 */
-	public Map<String, String> getHeaders() {
+	public Map<String, String> headers() {
 		return headers;
 	}
 
-	private String getParametersString(String queryEncodingCharset) throws UnsupportedEncodingException {
+	private String makeQueryString(String queryEncodingCharset) throws UnsupportedEncodingException {
 		if(parameters.size() <= 0) { return ""; }
 
 		StringBuilder query = new StringBuilder();
-		String value = null;
+		String innerValue = null;
 
-		for(Map.Entry<String, String> item : parameters.entrySet()) {
+		for(Map.Entry<String, List<String>> item : parameters.entrySet()) {
 
-			value = queryEncodingCharset != null ? java.net.URLEncoder.encode(item.getValue(), queryEncodingCharset) : item.getValue();
+			for(String value : item.getValue()) {
+				innerValue = queryEncodingCharset != null ? java.net.URLEncoder.encode(value, queryEncodingCharset) : value;
 
-			query = query.append(item.getKey()).append("=").append(value).append("&");
+				query = query.append(item.getKey()).append("=").append(innerValue).append("&");
+			}
 		}
 
 		query = query.deleteCharAt(query.length() - 1);
