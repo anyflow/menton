@@ -5,6 +5,8 @@ package net.anyflow.menton;
 
 import io.netty.handler.logging.LogLevel;
 
+import java.io.Reader;
+
 /**
  * @author anyflow
  */
@@ -30,6 +32,16 @@ public class Configurator extends java.util.Properties {
 	public void initialize(java.io.InputStream propertyInputStream) {
 		try {
 			load(propertyInputStream);
+		}
+		catch(java.io.IOException e) {
+			logger.error("Loading network properties failed.", e);
+		}
+	}
+
+	public void initialize(Reader propertyReader) {
+
+		try {
+			load(propertyReader);
 		}
 		catch(java.io.IOException e) {
 			logger.error("Loading network properties failed.", e);
