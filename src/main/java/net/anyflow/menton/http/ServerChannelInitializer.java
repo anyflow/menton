@@ -17,7 +17,7 @@ import net.anyflow.menton.Configurator;
 public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
 	private String requestHandlerPackageRoot;
-	private Class<RequestHandler> requestHandlerClass;
+	private Class<? extends RequestHandler> requestHandlerClass;
 
 	/**
 	 * @param clientHandler
@@ -29,7 +29,7 @@ public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> 
 	/**
 	 * @param requestHandlerClass
 	 */
-	public ServerChannelInitializer(Class<RequestHandler> requestHandlerClass) {
+	public ServerChannelInitializer(Class<? extends RequestHandler> requestHandlerClass) {
 		this.requestHandlerClass = requestHandlerClass;
 	}
 

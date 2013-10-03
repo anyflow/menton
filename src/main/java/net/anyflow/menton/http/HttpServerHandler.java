@@ -33,7 +33,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 	private HttpRequest request;
 	private String requestHandlerPackageRoot;
-	private Class<RequestHandler> requestHandlerClass;
+	private Class<? extends RequestHandler> requestHandlerClass;
 
 	public HttpServerHandler(String requestHandlerPackageRoot) {
 		this.requestHandlerPackageRoot = requestHandlerPackageRoot;
@@ -42,7 +42,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	/**
 	 * @param requestHandlerClass
 	 */
-	public HttpServerHandler(Class<RequestHandler> requestHandlerClass) {
+	public HttpServerHandler(Class<? extends RequestHandler> requestHandlerClass) {
 		this.requestHandlerClass = requestHandlerClass;
 	}
 

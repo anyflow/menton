@@ -26,7 +26,7 @@ public class HttpServer {
 		start(requestHandlerPackageRoot, null, Configurator.instance().getHttpPort());
 	}
 
-	public static void start(Class<RequestHandler> requestHandlerClass) {
+	public static void start(Class<? extends RequestHandler> requestHandlerClass) {
 		start(null, requestHandlerClass, Configurator.instance().getHttpPort());
 	}
 
@@ -34,11 +34,11 @@ public class HttpServer {
 		start(requestHandlerPackageRoot, null, port);
 	}
 
-	public static void start(Class<RequestHandler> requestHandlerClass, int port) {
+	public static void start(Class<? extends RequestHandler> requestHandlerClass, int port) {
 		start(null, requestHandlerClass, port);
 	}
 
-	private static void start(String requestHandlerPackageRoot, Class<RequestHandler> requestHandlerClass, int port) {
+	private static void start(String requestHandlerPackageRoot, Class<? extends RequestHandler> requestHandlerClass, int port) {
 		Thread.currentThread().setName("server/main");
 
 		bossGroup = new NioEventLoopGroup(0, new DefaultThreadFactory("server/boss"));
@@ -57,11 +57,11 @@ public class HttpServer {
 		}
 		catch(InterruptedException e) {
 			logger.error("Menton HTTP server failed to start...", e);
-			stop();
+			shutdown();
 		}
 	}
 
-	public static void stop() {
+	public static void shutdown() {
 		if(bossGroup != null) {
 			bossGroup.shutdownGracefully().awaitUninterruptibly();
 			logger.debug("Boss event loop group shutdowned.");
