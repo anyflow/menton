@@ -43,7 +43,7 @@ public class AvroServer {
 		logger.info("Avro server started.");
 	}
 
-	public static void stop() {
+	public static void shutdown() {
 		if(instance == null) { return; }
 
 		instance.server.close();
