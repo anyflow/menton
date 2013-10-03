@@ -220,21 +220,20 @@ public class MessageQueue<Element> {
 			for(SimpleEntry<Task, Future<Boolean>> item : tasks) {
 				try {
 					if(item.getValue().get(transferer.timeout(), TimeUnit.MILLISECONDS) == false) {
-						logger.error("Sending notification(id:{}) to Push Sender failed. The task returns false.", item.getKey().getTarget()
-								.toString());
+						logger.error("Transfering({}) failed. The task returns false.", item.getKey().getTarget().toString());
 						fails.add(item.getKey().getTarget());
 					}
 				}
 				catch(InterruptedException e) {
-					logger.error("Sending notification(id:{}) to Push Sender failed.", item.getKey().getTarget().toString(), e);
+					logger.error("Transfering({}) failed.", item.getKey().getTarget().toString(), e);
 					fails.add(item.getKey().getTarget());
 				}
 				catch(ExecutionException e) {
-					logger.error("Sending notification(id:{}) to Push Sender failed. id : ", item.getKey().getTarget().toString(), e);
+					logger.error("Transfering({}) failed.", item.getKey().getTarget().toString(), e);
 					fails.add(item.getKey().getTarget());
 				}
 				catch(TimeoutException e) {
-					logger.error("Sending notification(id:{}) to Push Sender failed. id : ", item.getKey().getTarget().toString(), e);
+					logger.error("Transfering({}) failed.", item.getKey().getTarget().toString(), e);
 					fails.add(item.getKey().getTarget());
 				}
 			}
@@ -243,13 +242,12 @@ public class MessageQueue<Element> {
 				MessageQueue.this.queueForTransfering(fails);
 			}
 
-			logger.debug("Transfering finished. queue size : {}", guestsForTransfering.size());
+			logger.info("Transfering finished. queue size : {}", guestsForTransfering.size());
 		}
 
 		private class Task implements Callable<Boolean> {
 
 			private final Element target;
-
 			private final Transferer<Element> writer;
 
 			public Task(Element target, Transferer<Element> writer) {
