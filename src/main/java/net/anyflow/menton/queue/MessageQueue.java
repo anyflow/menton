@@ -48,7 +48,7 @@ public class MessageQueue<Element> {
 		Executors.newSingleThreadExecutor().execute(
 				new MessagePump(new TransfererHandler(transferer), guestsForTransfering, transferer.maxProcessingSize()));
 
-		logger.info("Message Queue started with max processing size DB : {}, PushSender : {}.", persister.maxProcessingSize(),
+		logger.info("Message Queue started with max processing size persister : {}, transferer : {}.", persister.maxProcessingSize(),
 				transferer.maxProcessingSize());
 	}
 
