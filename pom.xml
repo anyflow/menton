@@ -84,6 +84,7 @@
         </configuration>
       </plugin>
 
+      <!-- for build number managing -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>

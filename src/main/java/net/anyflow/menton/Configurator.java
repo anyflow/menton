@@ -4,6 +4,7 @@
 package net.anyflow.menton;
 
 import io.netty.handler.logging.LogLevel;
+
 import java.io.Reader;
 
 /**
@@ -20,12 +21,6 @@ public class Configurator extends java.util.Properties {
 		}
 
 		return instance;
-	}
-
-	private static void prepareInitialize() {
-		if(configuration == null) {
-			configuration = new java.util.Properties();
-		}
 	}
 
 	/**
