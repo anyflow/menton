@@ -3,17 +3,24 @@
  */
 package net.anyflow.menton;
 
+import io.netty.handler.logging.LogLevel;
 import java.io.Reader;
-
-import net.anyflow.menton.exception.DefaultException;
 
 /**
  * @author anyflow
  */
-public class Configurator {
+public class Configurator extends java.util.Properties {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Configurator.class);
-	private static java.util.Properties configuration;
+	private static Configurator instance;
+
+	public static Configurator instance() {
+		if(instance == null) {
+			instance = new Configurator();
+		}
+
+		return instance;
+	}
 
 	private static void prepareInitialize() {
 		if(configuration == null) {
@@ -27,80 +34,78 @@ public class Configurator {
 	 * @param propertyInputStream
 	 *            Menton's properties InputStream
 	 */
-	public static void initialize(java.io.InputStream propertyInputStream) {
-
-		prepareInitialize();
-
+	public void initialize(java.io.InputStream propertyInputStream) {
 		try {
-			configuration.load(propertyInputStream);
+			load(propertyInputStream);
 		}
 		catch(java.io.IOException e) {
 			logger.error("Loading network properties failed.", e);
 		}
 	}
 
-	public static void initialize(Reader propertyReader) {
-
-		prepareInitialize();
+	public void initialize(Reader propertyReader) {
 
 		try {
-			configuration.load(propertyReader);
+			load(propertyReader);
 		}
 		catch(java.io.IOException e) {
 			logger.error("Loading network properties failed.", e);
 		}
 	}
 
-	public static void setRequestHandlerPackageRoot(String requestHandlerPackageRoot) throws DefaultException {
-		if(configuration == null) { throw new DefaultException("Configurator.configure should be called before this."); }
-
-		configuration.setProperty("httpServer.requestHandlerPackageRoot", requestHandlerPackageRoot);
+	public void setRequestHandlerPackageRoot(String requestHandlerPackageRoot) {
+		setProperty("httpServer.requestHandlerPackageRoot", requestHandlerPackageRoot);
 	}
 
 	/**
 	 * @return Request Handler Package root name
-	 * @throws DefaultException
 	 */
-	public static String getRequestHandlerPackageRoot() throws DefaultException {
-		if(configuration == null) { throw new DefaultException("Configurator.configure should be called before this."); }
-
-		return configuration.getProperty("httpServer.requestHandlerPackageRoot",
-				"requestHandler Package key was not found");
+	public String getRequestHandlerPackageRoot() {
+		return getProperty("httpServer.requestHandlerPackageRoot", "requestHandler Package key was not found");
 	}
 
 	/**
 	 * @return http port
-	 * @throws DefaultException
 	 */
-	public static int getHttpPort() throws DefaultException {
-		if(configuration == null) { throw new DefaultException("Configurator.configure should be called before this."); }
-
-		return Integer.parseInt(configuration.getProperty("httpServer.port", "8090"));
+	public int getHttpPort() {
+		return Integer.parseInt(getProperty("httpServer.port", "8090"));
 	}
 
 	/**
 	 * @return avro port
-	 * @throws DefaultException
 	 */
-	public static int getAvroPort() throws DefaultException {
-		if(configuration == null) { throw new DefaultException("Configurator.configure should be called before this."); }
-
-		return Integer.parseInt(configuration.getProperty("avroServer.port", "9090"));
+	public int getAvroPort() {
+		return Integer.parseInt(getProperty("avroServer.port", "9090"));
 	}
 
 	/**
 	 * @return context root path
-	 * @throws DefaultException
 	 */
-	public static String getHttpContextRoot() throws DefaultException {
-		if(configuration == null) { throw new DefaultException("Configurator.configure should be called before this."); }
-
-		String ret = configuration.getProperty("httpServer.contextRoot", "/");
+	public String getHttpContextRoot() {
+		String ret = getProperty("httpServer.contextRoot", "/");
 
 		if(ret.equalsIgnoreCase("") || ret.charAt(ret.length() - 1) != '/') {
 			ret += "/";
 		}
 
 		return ret;
+	}
+
+	public LogLevel getLogLevel() {
+		if(logger.isTraceEnabled()) {
+			return LogLevel.TRACE;
+		}
+		else if(logger.isDebugEnabled()) {
+			return LogLevel.DEBUG;
+		}
+		else if(logger.isInfoEnabled()) {
+			return LogLevel.INFO;
+		}
+		else if(logger.isWarnEnabled()) {
+			return LogLevel.WARN;
+		}
+		else {
+			return LogLevel.DEBUG;
+		}
 	}
 }

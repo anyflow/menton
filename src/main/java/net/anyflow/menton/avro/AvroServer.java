@@ -5,7 +5,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import net.anyflow.menton.Configurator;
-import net.anyflow.menton.exception.DefaultException;
 
 import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Responder;
@@ -27,8 +26,8 @@ public class AvroServer {
 	private AvroServer() {
 	}
 
-	public static void start(Responder responder) throws DefaultException {
-		start(responder, Configurator.getAvroPort());
+	public static void start(Responder responder) {
+		start(responder, Configurator.instance().getAvroPort());
 	}
 
 	public static void start(Responder responder, int port) {
@@ -38,14 +37,13 @@ public class AvroServer {
 
 		ExecutorService executor = Executors.newCachedThreadPool();
 
-		instance.server = new NettyServer(responder, new InetSocketAddress(port), new NioServerSocketChannelFactory(
-				executor, executor), new ExecutionHandler(
-				new OrderedMemoryAwareThreadPoolExecutor(16, 1048576, 1048576)));
+		instance.server = new NettyServer(responder, new InetSocketAddress(port), new NioServerSocketChannelFactory(executor, executor),
+				new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(16, 1048576, 1048576)));
 
 		logger.info("Avro server started.");
 	}
 
-	public static void stop() {
+	public static void shutdown() {
 		if(instance == null) { return; }
 
 		instance.server.close();

@@ -1,21 +1,12 @@
 package net.anyflow.menton.http;
 
-import java.net.InetSocketAddress;
-import java.util.concurrent.Executors;
-
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import net.anyflow.menton.Configurator;
-import net.anyflow.menton.exception.DefaultException;
 
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.ChannelHandler;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.group.ChannelGroup;
-import org.jboss.netty.channel.group.DefaultChannelGroup;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.handler.codec.http.HttpContentCompressor;
-import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
-import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,66 +16,62 @@ import org.slf4j.LoggerFactory;
 public class HttpServer {
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpServer.class);
-	private static ServerBootstrap bootstrap;
-	private static ChannelGroup channelGroup;
+	private static EventLoopGroup bossGroup;
+	private static EventLoopGroup workerGroup;
 
 	public HttpServer() {
 	}
 
-	public static void start(final ChannelHandler channelHandler) throws DefaultException {
-		start(channelHandler, Configurator.getHttpPort());
+	public static void start(String requestHandlerPackageRoot) {
+		start(requestHandlerPackageRoot, null, Configurator.instance().getHttpPort());
 	}
 
-	public static void start(final ChannelHandler channelHandler, int port) {
-
-		bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
-				Executors.newCachedThreadPool()));
-
-		// Set up the event pipeline factory.
-		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-
-			@Override
-			public ChannelPipeline getPipeline() throws Exception {
-				// Create a default pipeline implementation.
-				ChannelPipeline pipeline = org.jboss.netty.channel.Channels.pipeline();
-
-				// Uncomment the following line if you want HTTPS
-				// SSLEngine engine =
-				// SecureChatSslContextFactory.getServerContext().createSSLEngine();
-				// engine.setUseClientMode(false);
-				// pipeline.addLast("ssl", new SslHandler(engine));
-
-				pipeline.addLast("decoder", new HttpRequestDecoder());
-				// Uncomment the following line if you don't want to handle
-				// HttpChunks.
-				// pipeline.addLast("aggregator", new
-				// HttpChunkAggregator(1048576));
-				pipeline.addLast("encoder", new HttpResponseEncoder());
-				// Remove the following line if you don't want automatic content
-				// compression.
-				pipeline.addLast("deflater", new HttpContentCompressor());
-				pipeline.addLast("handler", channelHandler);
-
-				return pipeline;
-			}
-		});
-
-		channelGroup = new DefaultChannelGroup();
-
-		// Bind, start to accept incoming connections and manage the channel.
-		channelGroup.add(bootstrap.bind(new InetSocketAddress(port)));
-
-		logger.info("Http server started.");
+	public static void start(Class<? extends RequestHandler> requestHandlerClass) {
+		start(null, requestHandlerClass, Configurator.instance().getHttpPort());
 	}
 
-	public static void stop() {
-		if(channelGroup != null) {
-			channelGroup.close().awaitUninterruptibly();
+	public static void start(String requestHandlerPackageRoot, int port) {
+		start(requestHandlerPackageRoot, null, port);
+	}
+
+	public static void start(Class<? extends RequestHandler> requestHandlerClass, int port) {
+		start(null, requestHandlerClass, port);
+	}
+
+	private static void start(String requestHandlerPackageRoot, Class<? extends RequestHandler> requestHandlerClass, int port) {
+		Thread.currentThread().setName("server/main");
+
+		bossGroup = new NioEventLoopGroup(0, new DefaultThreadFactory("server/boss"));
+		workerGroup = new NioEventLoopGroup(0, new DefaultThreadFactory("server/worker"));
+
+		try {
+			ServerBootstrap bootstrap = new ServerBootstrap();
+
+			ServerChannelInitializer serverChannelInitializer = requestHandlerClass != null ? new ServerChannelInitializer(requestHandlerClass)
+					: new ServerChannelInitializer(requestHandlerPackageRoot);
+
+			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(serverChannelInitializer);
+			bootstrap.bind(port).sync();
+
+			logger.info("Menton HTTP server started.");
+		}
+		catch(InterruptedException e) {
+			logger.error("Menton HTTP server failed to start...", e);
+			shutdown();
+		}
+	}
+
+	public static void shutdown() {
+		if(bossGroup != null) {
+			bossGroup.shutdownGracefully().awaitUninterruptibly();
+			logger.debug("Boss event loop group shutdowned.");
 		}
 
-		if(bootstrap == null) { return; }
+		if(workerGroup != null) {
+			workerGroup.shutdownGracefully().awaitUninterruptibly();
+			logger.debug("Worker event loop group shutdowned.");
+		}
 
-		bootstrap.releaseExternalResources();
-		logger.debug("HttpServer resources released.");
+		logger.debug("Menton HTTP server stopped.");
 	}
 }

@@ -6,7 +6,7 @@
   <artifactId>menton</artifactId>
   <packaging>jar</packaging>
   <name>Menton</name>
-  <version>1.0.2</version>
+  <version>1.1.1</version>
   <description>Menton Framework</description>
   <url>https://github.com/anyflow/Menton</url>
 
@@ -16,8 +16,8 @@
 
   <!-- for build number management -->
   <scm>
-    <connection>scm:git:ssh://git@10.170.84.102:/pushrequester.git</connection>
-    <developerConnection>scm:git:ssh://git@10.170.84.102:/pushrequester.git</developerConnection>
+    <connection>scm:git:ssh://git@10.170.84.102:/menton.git</connection>
+    <developerConnection>scm:git:ssh://git@10.170.84.102:/menton.git</developerConnection>
     <tag>HEAD</tag>
     <url></url>
   </scm>
@@ -38,8 +38,15 @@
 
     <dependency>
       <groupId>io.netty</groupId>
-      <artifactId>netty</artifactId>
-      <version>3.7.0.Final</version>
+      <artifactId>netty-all</artifactId>
+      <version>4.0.9.Final</version>
+    </dependency>
+
+    <!-- Due to netty4 bug, netty4 HttpCompressor uses the library but not included in its package. So I added it. -->
+    <dependency>
+      <groupId>com.jcraft</groupId>
+      <artifactId>jzlib</artifactId>
+      <version>1.1.2</version>
     </dependency>
 
     <dependency>
@@ -76,8 +83,7 @@
           <target>1.6</target>
         </configuration>
       </plugin>
-      
-      <!-- for build number managing -->
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>
