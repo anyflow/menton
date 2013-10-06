@@ -7,39 +7,47 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
  * @author anyflow
  */
-public class MessageQueue<Element> {
+public class LinkedQueue<Element> {
 
-	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(MessageQueue.class);
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LinkedQueue.class);
 
-	private final PriorityBlockingQueue<Element> guestsForPersisting;
-	private final PriorityBlockingQueue<Element> guestsForTransfering;
+	private final List<PriorityQueue<Element>> guests;
+
+	private final PriorityQueue<Element> guestsForPersisting;
+	private final PriorityQueue<Element> guestsForTransfering;
 	private final Persister<Element> persister;
 	private final Transferer<Element> transferer;
 
-	public MessageQueue(Persister<Element> persister, Transferer<Element> transferer) {
+	public LinkedQueue(Persister<Element> persister, Transferer<Element> transferer) {
 		this(persister, transferer, null, null);
 	}
 
-	public MessageQueue(Persister<Element> persister, Transferer<Element> transferer, Comparator<Element> peristComparator,
+	public LinkedQueue(Persister<Element> persister, Transferer<Element> transferer, Comparator<Element> peristComparator,
 			Comparator<Element> transferComparator) {
 
 		this.persister = persister;
 		this.transferer = transferer;
 
-		guestsForPersisting = new PriorityBlockingQueue<Element>(persister.maxProcessingSize(), peristComparator);
-		guestsForTransfering = new PriorityBlockingQueue<Element>(transferer.maxProcessingSize(), transferComparator);
+		guestsForPersisting = new PriorityQueue<Element>(persister.maxProcessingSize(), peristComparator);
+		guestsForTransfering = new PriorityQueue<Element>(transferer.maxProcessingSize(), transferComparator);
+
+		guests = new ArrayList<PriorityQueue<Element>>();
+
+		guests.add(guestsForPersisting);
+		guests.add(guestsForTransfering);
 	}
 
 	public void start() {
@@ -48,62 +56,111 @@ public class MessageQueue<Element> {
 		Executors.newSingleThreadExecutor().execute(
 				new MessagePump(new TransfererHandler(transferer), guestsForTransfering, transferer.maxProcessingSize()));
 
-		logger.info("Message Queue started with max processing size persister : {}, transferer : {}.", persister.maxProcessingSize(),
+		logger.info("LinkedQueue started with max processing size persister : {}, transferer : {}.", persister.maxProcessingSize(),
 				transferer.maxProcessingSize());
 	}
 
+	public void enqueue(List<Element> elements, int queueIndex) {
+		enqueue(elements, guests.get(queueIndex));
+	}
+
+	public void enqueue(Element element, int queueIndex) {
+		enqueue(element, guests.get(queueIndex));
+	}
+
 	/**
-	 * Add notification to process...
+	 * The method is thread-safe.
 	 * 
-	 * @param notification
+	 * @param elements
+	 *            to persist process
+	 */
+	public void queueForPersisting(List<Element> elements) {
+		enqueue(elements, guestsForPersisting);
+	}
+
+	/**
+	 * The method is thread-safe.
+	 * 
+	 * @param elements
+	 *            to transfer process
+	 */
+	public void queueForTransfering(List<Element> elements) {
+		enqueue(elements, guestsForTransfering);
+	}
+
+	/**
+	 * The method is thread-safe.
+	 * 
+	 * @param element
+	 *            to persist process
 	 */
 	public void queueForPersisting(Element element) {
+		enqueue(element, guestsForPersisting);
+	}
 
-		if(guestsForPersisting.contains(element)) { return; }
-		if(guestsForPersisting.offer(element) == false) { return; }
+	/**
+	 * The method is thread-safe.
+	 * 
+	 * @param element
+	 *            to persist process
+	 */
+	public void queueForTransfering(Element element) {
+		enqueue(element, guestsForTransfering);
+	}
 
-		synchronized(guestsForPersisting) {
-			guestsForPersisting.notify();
+	private void enqueue(Element element, Queue<Element> target) {
+
+		if(target.contains(element)) { return; }
+		if(target.offer(element) == false) { return; }
+
+		synchronized(target) {
+			target.notify();
 		}
 	}
 
-	public void queueForTransfering(List<Element> elements) {
-
-		ArrayList<Element> list = new ArrayList<Element>();
-
-		for(Element item : elements) {
-			if(guestsForTransfering.contains(item)) {
+	private void enqueue(List<Element> elements, Queue<Element> target) {
+		for(Element element : elements) {
+			if(target.contains(element)) {
 				continue;
 			}
 
-			list.add(item);
+			if(target.offer(element) == false) {
+				continue;
+			}
 		}
 
-		guestsForTransfering.addAll(list);
+		if(target.size() <= 0) { return; }
 
-		synchronized(guestsForTransfering) {
-			guestsForTransfering.notify();
+		synchronized(target) {
+			target.notify();
 		}
 	}
 
 	private class MessagePump implements Runnable {
 
-		private final PriorityBlockingQueue<Element> guests;
+		private final Queue<Element> guests;
 		private final int maxProcessingSize;
 		private final MessageHandler<Element> handler;
+		private final ExecutorService handleExecutor;
 
-		public MessagePump(MessageHandler<Element> handler, PriorityBlockingQueue<Element> guests, int maxProcessingSize) {
+		public MessagePump(MessageHandler<Element> handler, Queue<Element> guests, int maxProcessingSize) {
 			this.handler = handler;
 			this.guests = guests;
 			this.maxProcessingSize = maxProcessingSize;
+			this.handleExecutor = Executors.newCachedThreadPool();
 		}
 
 		@Override
 		public void run() {
+			ArrayList<Element> messages = null;
+
 			while(true) {
-				if(guests.size() <= 0) {
+				messages = new ArrayList<Element>(); // the list should be created per loop.
+
+				synchronized(guests) {
 					try {
-						synchronized(guests) {
+						// blocks until guests appears..
+						if(guests.size() <= 0) {
 							guests.wait();
 						}
 					}
@@ -111,29 +168,20 @@ public class MessageQueue<Element> {
 						logger.error("waiting interrupted unintentionally.", e);
 						continue;
 					}
-				}
 
-				handler.handle(pollTasks());
+					if(guests.size() > 0) {
+						for(int i = 0; i < maxProcessingSize; ++i) {
+							messages.add(guests.poll());
+
+							if(guests.size() == 0) {
+								break;
+							}
+						}
+
+						handler.handle(handleExecutor, messages);
+					}
+				}
 			}
-		}
-
-		private List<Element> pollTasks() {
-
-			ArrayList<Element> tasks = new ArrayList<Element>();
-
-			while(true) {
-				if(guests.size() <= 0) {
-					break;
-				}
-				if(tasks.size() >= maxProcessingSize) {
-					break;
-				}
-
-				tasks.add(guests.poll());
-			}
-
-			logger.debug("polled task count : {}", tasks.size());
-			return tasks;
 		}
 	}
 
@@ -142,7 +190,7 @@ public class MessageQueue<Element> {
 		/**
 		 * @param target
 		 */
-		void handle(List<Message> target);
+		void handle(ExecutorService executor, List<Message> target);
 	}
 
 	/**
@@ -151,11 +199,9 @@ public class MessageQueue<Element> {
 	private class PersisterHandler implements MessageHandler<Element> {
 
 		private final Persister<Element> persister;
-		private final ExecutorService executor;
 
 		public PersisterHandler(Persister<Element> persister) {
 			this.persister = persister;
-			executor = Executors.newCachedThreadPool();
 		}
 
 		/*
@@ -163,22 +209,19 @@ public class MessageQueue<Element> {
 		 * @see anyflow.pushService.pushCenter.MessageQueue.Writer#write(java.util .List)
 		 */
 		@Override
-		public void handle(final List<Element> target) {
+		public void handle(ExecutorService executor, final List<Element> target) {
 			executor.execute(new Runnable() {
 
 				@Override
 				public void run() {
+
 					logger.debug("Persisting started. target size : {}", target.size());
 
 					if(persister.persist(target)) {
-						MessageQueue.this.queueForTransfering(target);
+						LinkedQueue.this.queueForTransfering(target);
 					}
 					else {
-						guestsForPersisting.addAll(target);
-
-						synchronized(guestsForPersisting) {
-							guestsForPersisting.notify();
-						}
+						LinkedQueue.this.queueForPersisting(target);
 					}
 				}
 			});
@@ -191,11 +234,9 @@ public class MessageQueue<Element> {
 	private class TransfererHandler implements MessageHandler<Element> {
 
 		private final Transferer<Element> transferer;
-		private final ExecutorService executor;
 
 		public TransfererHandler(Transferer<Element> transferer) {
 			this.transferer = transferer;
-			this.executor = Executors.newCachedThreadPool();
 		}
 
 		/*
@@ -203,7 +244,7 @@ public class MessageQueue<Element> {
 		 * @see anyflow.pushService.pushCenter.MessageQueue.Writer#write(java.util .List)
 		 */
 		@Override
-		public void handle(List<Element> target) {
+		public void handle(ExecutorService executor, List<Element> target) {
 			logger.debug("Transfering started. target size : {}", target.size());
 
 			List<SimpleEntry<Task, Future<Boolean>>> tasks = new ArrayList<SimpleEntry<Task, Future<Boolean>>>();
@@ -242,7 +283,7 @@ public class MessageQueue<Element> {
 			}
 
 			if(fails.size() > 0) {
-				MessageQueue.this.queueForTransfering(fails);
+				LinkedQueue.this.queueForTransfering(fails);
 			}
 
 			logger.info("Transfering finished. queue size : {}", guestsForTransfering.size());
