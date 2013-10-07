@@ -24,6 +24,7 @@ public class PumpingQueue<Item> {
 	private final PriorityQueue<Item> queue;
 	private final Processor<Item> processor;
 	private final Synchronization synchronization;
+	private final List<Future<?>> tasks;
 
 	public enum Synchronization {
 		ONE_BY_ONE, SIMULTANEOUS
@@ -43,6 +44,19 @@ public class PumpingQueue<Item> {
 		this.synchronization = synchronization;
 
 		queue = new PriorityQueue<Item>(processor.maxProcessingSize(), comparator);
+		tasks = new ArrayList<Future<?>>();
+	}
+
+	public int runningTaskCount() {
+		int ret = queue.size();
+
+		for(Future<?> task : tasks) {
+			if(task.isDone() == false) {
+				++ret;
+			}
+		}
+
+		return ret;
 	}
 
 	public void enqueue(Item item) {
@@ -94,50 +108,59 @@ public class PumpingQueue<Item> {
 							logger.error("waiting interrupted unintentionally.", e);
 							continue;
 						}
+					}
 
-						if(queue.size() > 0) {
-							for(int i = 0; i < processor.maxProcessingSize(); ++i) {
-								targets.add(queue.poll());
+					for(int i = 0; i < processor.maxProcessingSize(); ++i) {
+						targets.add(queue.poll()); // PumpingQueue doesn't have a remove operation. so poll() returns not-null item definitely.
 
-								if(queue.size() == 0) {
-									break;
-								}
-							}
-
-							Future<?> future = executor.submit(new Runnable() {
-
-								@Override
-								public void run() {
-									processor.process(targets);
-									processor.processingCompleted(targets);
-								}
-							});
-
-							switch(synchronization) {
-
-							case ONE_BY_ONE:
-								try {
-									future.get(processor.prcessingTimeout(), TimeUnit.MILLISECONDS);
-								}
-								catch(InterruptedException e) {
-									enqueue(targets);
-									logger.error("Processing " + targets.toString() + " failed, so enqueued again.", e);
-								}
-								catch(ExecutionException e) {
-									enqueue(targets);
-									logger.error("Processing " + targets.toString() + " failed, so enqueued again.", e);
-								}
-								catch(TimeoutException e) {
-									enqueue(targets);
-									logger.error("Processing " + targets.toString() + " failed, so enqueued again.", e);
-								}
-								break;
-
-							case SIMULTANEOUS:
-							default:
-								break;
-							}
+						if(queue.size() == 0) {
+							break;
 						}
+					}
+
+					Future<?> future = executor.submit(new Runnable() {
+
+						@Override
+						public void run() {
+							processor.process(targets);
+							processor.processingCompleted(targets);
+						}
+					});
+
+					tasks.add(future);
+
+					// task clean up.
+					List<Future<?>> removes = new ArrayList<Future<?>>();
+					for(Future<?> task : tasks) {
+						if(task.isDone()) {
+							removes.add(task);
+						}
+					}
+					tasks.removeAll(removes);
+
+					switch(synchronization) {
+
+					case ONE_BY_ONE:
+						try {
+							future.get(processor.prcessingTimeout(), TimeUnit.MILLISECONDS);
+						}
+						catch(InterruptedException e) {
+							enqueue(targets);
+							logger.error("Processing " + targets.toString() + " failed, so enqueued again.", e);
+						}
+						catch(ExecutionException e) {
+							enqueue(targets);
+							logger.error("Processing " + targets.toString() + " failed, so enqueued again.", e);
+						}
+						catch(TimeoutException e) {
+							enqueue(targets);
+							logger.error("Processing " + targets.toString() + " failed, so enqueued again.", e);
+						}
+						break;
+
+					case SIMULTANEOUS:
+					default:
+						break;
 					}
 				}
 			}
