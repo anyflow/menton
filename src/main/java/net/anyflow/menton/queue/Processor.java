@@ -11,13 +11,13 @@ import java.util.List;
 public interface Processor<Item> {
 
 	/**
-	 * @return
+	 * @return maximum processing task count in one loop.
 	 */
 	int maxProcessingSize();
 
 	/**
-	 * @param executor
 	 * @param items
+	 *            items to process.
 	 */
 	void process(List<Item> items);
 
@@ -30,6 +30,7 @@ public interface Processor<Item> {
 	 * The event handler called in the worker thread when processing completed.
 	 * 
 	 * @param items
+	 *            items which are completed.
 	 */
 	void processingCompleted(List<Item> items);
 }

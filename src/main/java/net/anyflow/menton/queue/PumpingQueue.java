@@ -15,6 +15,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * Queue with a message pump works in in a dedicated thread, which processes Item via {@link net.anyflow.menton.queue.Processor}.
+ * <p>
+ * The queue supports priority based processing(With PriorityQueue).
+ * <P>
+ * The queue provides thread-safety.
+ * <p>
+ * The queue provides synchronization type(Blocking / Non-blocking processing).
+ * <p>
+ * The queue provides completion event via {@link net.anyflow.menton.queue.Processor}.
+ * <p>
+ * The queue provides processing task count in runtime.
+ * 
  * @author anyflow
  */
 public class PumpingQueue<Item> {
@@ -26,12 +38,25 @@ public class PumpingQueue<Item> {
 	private final Synchronization synchronization;
 	private final List<Future<?>> tasks;
 
+	/**
+	 * Processing type.
+	 * 
+	 * @author anyflow
+	 */
 	public enum Synchronization {
-		ONE_BY_ONE, SIMULTANEOUS
+		/**
+		 * The queue processes the next loop tasks after the current loop tasks completed.
+		 */
+		BLOCKING,
+
+		/**
+		 * The queue processes the next loop tasks right after the current loop tasks submited.
+		 */
+		NONBLOCKING
 	}
 
 	public PumpingQueue(Processor<Item> processor) {
-		this(processor, Synchronization.ONE_BY_ONE, null);
+		this(processor, Synchronization.BLOCKING, null);
 	}
 
 	public PumpingQueue(Processor<Item> processor, Synchronization synchronization) {
@@ -47,6 +72,9 @@ public class PumpingQueue<Item> {
 		tasks = new ArrayList<Future<?>>();
 	}
 
+	/**
+	 * @return current running task count include the tasks in the queue.
+	 */
 	public int runningTaskCount() {
 		int ret = queue.size();
 
@@ -87,6 +115,9 @@ public class PumpingQueue<Item> {
 		}
 	}
 
+	/**
+	 * Start message pump in the queue.
+	 */
 	public void start() {
 		Executors.newSingleThreadExecutor().execute(new Runnable() {
 
@@ -140,7 +171,7 @@ public class PumpingQueue<Item> {
 
 					switch(synchronization) {
 
-					case ONE_BY_ONE:
+					case BLOCKING:
 						try {
 							future.get(processor.prcessingTimeout(), TimeUnit.MILLISECONDS);
 						}
@@ -158,7 +189,7 @@ public class PumpingQueue<Item> {
 						}
 						break;
 
-					case SIMULTANEOUS:
+					case NONBLOCKING:
 					default:
 						break;
 					}
