@@ -15,19 +15,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Queue with a message pump works in in a dedicated thread, which processes Item via {@link net.anyflow.menton.queue.Processor}.
  * <p>
- * The queue supports priority based processing(With PriorityQueue).
- * <P>
- * The queue provides thread-safety.
- * <p>
- * The queue provides synchronization type(Blocking / Non-blocking processing).
- * <p>
- * The queue provides completion event via {@link net.anyflow.menton.queue.Processor}.
- * <p>
- * The queue provides processing task count in runtime.
+ * Queue with a message pump works in in a dedicated thread, which processes Items via {@link net.anyflow.menton.queue.Processor}.
+ * <ul>
+ * <li>The queue supports priority based processing(via {@link java.util.PriorityQueue}).
+ * <li>The queue provides thread-safety.
+ * <li>The queue provides synchronization type(Blocking / Non-blocking processing).
+ * <li>The queue provides completion event via {@link net.anyflow.menton.queue.Processor#processingCompleted(List)}.
+ * <li>The queue provides processing task count in runtime.
+ * </ul>
  * 
- * @author anyflow
+ * @author Park Hyunjeong
+ * @param <Item>
+ *            processing target type
  */
 public class PumpingQueue<Item> {
 
@@ -39,9 +39,10 @@ public class PumpingQueue<Item> {
 	private final List<Future<?>> tasks;
 
 	/**
-	 * Processing type.
+	 * <p>
+	 * Processing type
 	 * 
-	 * @author anyflow
+	 * @author Park Hyunjeong
 	 */
 	public enum Synchronization {
 		/**

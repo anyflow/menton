@@ -6,7 +6,11 @@ package net.anyflow.menton.queue;
 import java.util.List;
 
 /**
- * @author anyflow
+ * Item processor for {@link net.anyflow.menton.queue.PumpingQueue}.
+ * 
+ * @author Park Hyunjeong
+ * @param <Item>
+ *            processing target class
  */
 public interface Processor<Item> {
 
@@ -17,7 +21,7 @@ public interface Processor<Item> {
 
 	/**
 	 * @param items
-	 *            items to process.
+	 *            items processing target list
 	 */
 	void process(List<Item> items);
 

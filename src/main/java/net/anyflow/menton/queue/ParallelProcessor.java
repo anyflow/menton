@@ -15,7 +15,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * @author anyflow
+ * <p>
+ * The abstract class inherits {@link net.anyflow.menton.queue.Processor} which uses a thread per <code>Item</code>.
+ * 
+ * @author Park Hyunjeong
+ * @param <Item>
  */
 public abstract class ParallelProcessor<Item> implements Processor<Item> {
 
@@ -50,30 +54,41 @@ public abstract class ParallelProcessor<Item> implements Processor<Item> {
 	 */
 	public abstract Boolean process(Item item);
 
-/**
-	 * The event handler which is called when {@link net.anyflow.menton.queue.ParallelProcessor.process(Item) finished with false return value.
-	 * @param item the item processed.
+	/**
+	 * The event handler which is called when {@link #process(List)} finished with false return value.
+	 * 
+	 * @param item
+	 *            the item processed.
 	 */
 	public abstract void processingFailedWithReturn(Item item);
 
-/**
- * The event handler which is called when {@link net.anyflow.menton.queue.ParallelProcessor.process(Item) interrupted with an InterruptedException
-	 * @param item the item processed.
-	 * @param e the cause the handler called. 
+	/**
+	 * The event handler which is called when {@link #process(List)} interrupted with an InterruptedException
+	 * 
+	 * @param item
+	 *            the item processed.
+	 * @param e
+	 *            the cause the handler called.
 	 */
 	public abstract void processingFailedWith(Item item, InterruptedException e);
 
-/**
-	 * The event handler which is called when {@link net.anyflow.menton.queue.ParallelProcessor.process(Item) interrupted with an ExecutionException
-	 * @param item the item processed.
-	 * @param e the cause the handler called.
+	/**
+	 * The event handler which is called when {@link #process(List)} interrupted with an ExecutionException
+	 * 
+	 * @param item
+	 *            the item processed.
+	 * @param e
+	 *            the cause the handler called.
 	 */
 	public abstract void processingFailedWith(Item item, ExecutionException e);
 
-/**
-	 * The event handler which is called when {@link net.anyflow.menton.queue.ParallelProcessor.process(Item) interrupted with an TimeoutException
-	 * @param item the item processed.
-	 * @param e the cause the handler called.
+	/**
+	 * The event handler which is called when {@link #process(List)} interrupted with an TimeoutException
+	 * 
+	 * @param item
+	 *            the item processed.
+	 * @param e
+	 *            the cause the handler called.
 	 */
 	public abstract void processingFailedWith(Item item, TimeoutException e);
 
