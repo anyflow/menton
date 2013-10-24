@@ -17,12 +17,16 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * <p>
- * Queue with a message pump works in in a dedicated thread, which processes Items via {@link net.anyflow.menton.queue.Processor}.
+ * Queue with a message pump works in in a dedicated thread, which processes
+ * Items via {@link net.anyflow.menton.queue.Processor}.
  * <ul>
- * <li>The queue supports priority based processing(via {@link java.util.PriorityQueue}).
+ * <li>The queue supports priority based processing(via
+ * {@link java.util.PriorityQueue}).
  * <li>The queue provides thread-safety.
- * <li>The queue provides synchronization type(Blocking / Non-blocking processing).
- * <li>The queue provides completion event via {@link net.anyflow.menton.queue.Processor#processingCompleted(List)}.
+ * <li>The queue provides synchronization type(Blocking / Non-blocking
+ * processing).
+ * <li>The queue provides completion event via
+ * {@link net.anyflow.menton.queue.Processor#processingCompleted(List)}.
  * <li>The queue provides processing task count in runtime.
  * </ul>
  * 
@@ -32,7 +36,8 @@ import java.util.concurrent.TimeoutException;
  */
 public class PumpingQueue<Item> {
 
-	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PumpingQueue.class);
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory
+			.getLogger(PumpingQueue.class);
 
 	private final PriorityBlockingQueue<Item> queue;
 	private final Processor<Item> processor;
@@ -47,12 +52,14 @@ public class PumpingQueue<Item> {
 	 */
 	public enum Synchronization {
 		/**
-		 * The queue processes the next loop tasks after the current loop tasks completed.
+		 * The queue processes the next loop tasks after the current loop tasks
+		 * completed.
 		 */
 		BLOCKING,
 
 		/**
-		 * The queue processes the next loop tasks right after the current loop tasks submited.
+		 * The queue processes the next loop tasks right after the current loop
+		 * tasks submited.
 		 */
 		NONBLOCKING
 	}
@@ -61,16 +68,19 @@ public class PumpingQueue<Item> {
 		this(processor, Synchronization.BLOCKING, null);
 	}
 
-	public PumpingQueue(Processor<Item> processor, Synchronization synchronization) {
+	public PumpingQueue(Processor<Item> processor,
+			Synchronization synchronization) {
 		this(processor, synchronization, null);
 	}
 
-	public PumpingQueue(Processor<Item> processor, Synchronization synchronization, Comparator<Item> comparator) {
+	public PumpingQueue(Processor<Item> processor,
+			Synchronization synchronization, Comparator<Item> comparator) {
 
 		this.processor = processor;
 		this.synchronization = synchronization;
 
-		queue = new PriorityBlockingQueue<Item>(processor.maxProcessingSize(), comparator);
+		queue = new PriorityBlockingQueue<Item>(processor.maxProcessingSize(),
+				comparator);
 		tasks = new ArrayList<Future<?>>();
 	}
 
@@ -80,9 +90,11 @@ public class PumpingQueue<Item> {
 	public int runningTaskCount() {
 		int ret = queue.size();
 
-		for(Future<?> task : tasks) {
-			if(task.isDone() == false) {
-				++ret;
+		synchronized (queue) {
+			for (Future<?> task : tasks) {
+				if (task.isDone() == false) {
+					++ret;
+				}
 			}
 		}
 
@@ -91,28 +103,34 @@ public class PumpingQueue<Item> {
 
 	public void enqueue(Item item) {
 
-		if(queue.contains(item)) { return; }
-		if(queue.offer(item) == false) { return; }
+		if (queue.contains(item)) {
+			return;
+		}
+		if (queue.offer(item) == false) {
+			return;
+		}
 
-		synchronized(queue) {
+		synchronized (queue) {
 			queue.notify();
 		}
 	}
 
 	public void enqueue(List<Item> items) {
-		for(Item element : items) {
-			if(queue.contains(element)) {
+		for (Item element : items) {
+			if (queue.contains(element)) {
 				continue;
 			}
 
-			if(queue.offer(element) == false) {
+			if (queue.offer(element) == false) {
 				continue;
 			}
 		}
 
-		if(queue.size() <= 0) { return; }
+		if (queue.size() <= 0) {
+			return;
+		}
 
-		synchronized(queue) {
+		synchronized (queue) {
 			queue.notify();
 		}
 	}
@@ -127,26 +145,35 @@ public class PumpingQueue<Item> {
 			public void run() {
 				ExecutorService executor = Executors.newCachedThreadPool();
 
-				while(true) {
-					final ArrayList<Item> targets = new ArrayList<Item>(); // the list should be created per loop.
+				while (true) {
+					final ArrayList<Item> targets = new ArrayList<Item>(); // the
+																			// list
+																			// should
+																			// be
+																			// created
+																			// per
+																			// loop.
 
-					synchronized(queue) {
+					synchronized (queue) {
 						try {
 							// blocks until item appears..
-							if(queue.size() <= 0) {
+							if (queue.size() <= 0) {
 								queue.wait();
 							}
-						}
-						catch(InterruptedException e) {
-							logger.error("waiting interrupted unintentionally.", e);
+						} catch (InterruptedException e) {
+							logger.error(
+									"waiting interrupted unintentionally.", e);
 							continue;
 						}
 					}
 
-					for(int i = 0; i < processor.maxProcessingSize(); ++i) {
-						targets.add(queue.poll()); // PumpingQueue doesn't have a remove operation. so poll() returns not-null item definitely.
+					for (int i = 0; i < processor.maxProcessingSize(); ++i) {
+						targets.add(queue.poll()); // PumpingQueue doesn't have
+													// a remove operation. so
+													// poll() returns not-null
+													// item definitely.
 
-						if(queue.size() == 0) {
+						if (queue.size() == 0) {
 							break;
 						}
 					}
@@ -164,30 +191,31 @@ public class PumpingQueue<Item> {
 
 					// task clean up.
 					List<Future<?>> removes = new ArrayList<Future<?>>();
-					for(Future<?> task : tasks) {
-						if(task.isDone()) {
+					for (Future<?> task : tasks) {
+						if (task.isDone()) {
 							removes.add(task);
 						}
 					}
 					tasks.removeAll(removes);
 
-					switch(synchronization) {
+					switch (synchronization) {
 
 					case BLOCKING:
 						try {
-							future.get(processor.prcessingTimeout(), TimeUnit.MILLISECONDS);
-						}
-						catch(InterruptedException e) {
+							future.get(processor.prcessingTimeout(),
+									TimeUnit.MILLISECONDS);
+						} catch (InterruptedException e) {
 							enqueue(targets);
-							logger.error("Processing " + targets.toString() + " failed, so enqueued again.", e);
-						}
-						catch(ExecutionException e) {
+							logger.error("Processing " + targets.toString()
+									+ " failed, so enqueued again.", e);
+						} catch (ExecutionException e) {
 							enqueue(targets);
-							logger.error("Processing " + targets.toString() + " failed, so enqueued again.", e);
-						}
-						catch(TimeoutException e) {
+							logger.error("Processing " + targets.toString()
+									+ " failed, so enqueued again.", e);
+						} catch (TimeoutException e) {
 							enqueue(targets);
-							logger.error("Processing " + targets.toString() + " failed, so enqueued again.", e);
+							logger.error("Processing " + targets.toString()
+									+ " failed, so enqueued again.", e);
 						}
 						break;
 
@@ -199,6 +227,7 @@ public class PumpingQueue<Item> {
 			}
 		});
 
-		logger.info("PumpingQueue started with max processing size : {}", processor.maxProcessingSize());
+		logger.info("PumpingQueue started with max processing size : {}",
+				processor.maxProcessingSize());
 	}
 }
