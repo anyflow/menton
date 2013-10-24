@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -33,7 +34,7 @@ public class PumpingQueue<Item> {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PumpingQueue.class);
 
-	private final PriorityQueue<Item> queue;
+	private final PriorityBlockingQueue<Item> queue;
 	private final Processor<Item> processor;
 	private final Synchronization synchronization;
 	private final List<Future<?>> tasks;
@@ -69,7 +70,7 @@ public class PumpingQueue<Item> {
 		this.processor = processor;
 		this.synchronization = synchronization;
 
-		queue = new PriorityQueue<Item>(processor.maxProcessingSize(), comparator);
+		queue = new PriorityBlockingQueue<Item>(processor.maxProcessingSize(), comparator);
 		tasks = new ArrayList<Future<?>>();
 	}
 
