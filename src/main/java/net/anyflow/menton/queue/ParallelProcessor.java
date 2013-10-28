@@ -112,22 +112,25 @@ public abstract class ParallelProcessor<Item> implements Processor<Item> {
 			try {
 				if(tasks.get(task).get(prcessingTimeout(), TimeUnit.MILLISECONDS) == false) {
 
+					logger.error("Processing " + task.item().toString() + " failed with return.");
+					
 					processingFailedWithReturn(task.item());
-
-					logger.error("Processing " + task.item().toString() + " failed, so enqueued again.");
 				}
 			}
 			catch(InterruptedException e) {
+				logger.error("Processing " + task.item().toString() + " failed with InterruptedException.");
+				
 				processingFailedWith(task.item(), e);
-				logger.error("Processing " + task.item().toString() + " failed, so enqueued again.", e);
 			}
 			catch(ExecutionException e) {
+				logger.error("Processing " + task.item().toString() + " failed with ExecutionException.");
+				
 				processingFailedWith(task.item(), e);
-				logger.error("Processing " + task.item().toString() + " failed, so enqueued again.", e);
 			}
 			catch(TimeoutException e) {
+				logger.error("Processing " + task.item().toString() + " failed with TimeoutException.");
+				
 				processingFailedWith(task.item(), e);
-				logger.error("Processing " + task.item().toString() + " failed, so enqueued again.", e);
 			}
 		}
 	}
