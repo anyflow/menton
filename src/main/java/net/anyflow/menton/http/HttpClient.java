@@ -192,14 +192,22 @@ public class HttpClient {
 			request.headers().set(item.getKey(), item.getValue());
 		}
 
-		if(httpMethod == HttpMethod.POST && headers.containsKey(HttpHeaders.Names.CONTENT_TYPE) == false) {
-			request.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/x-www-form-urlencoded");
+		if(httpMethod == HttpMethod.POST && request.headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
+			request.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
 		}
 
-		request.headers().set(HttpHeaders.Names.HOST, host);
-		request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-		request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP + ", " + HttpHeaders.Values.DEFLATE);
-		request.headers().set(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
+		if(request.headers().contains(HttpHeaders.Names.HOST) == false) {
+			request.headers().set(HttpHeaders.Names.HOST, host);
+		}
+		if(request.headers().contains(HttpHeaders.Names.CONNECTION) == false) {
+			request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+		}
+		if(request.headers().contains(HttpHeaders.Names.ACCEPT_ENCODING) == false) {
+			request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP + ", " + HttpHeaders.Values.DEFLATE);
+		}
+		if(request.headers().contains(HttpHeaders.Names.ACCEPT_CHARSET) == false) {
+			request.headers().set(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
+		}
 
 		request.headers().set(HttpHeaders.Names.COOKIE, ClientCookieEncoder.encode(cookies.values()));
 	}

@@ -9,6 +9,8 @@ import io.netty.handler.codec.DecoderResult;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpHeaders.Values;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
@@ -105,16 +107,17 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 		boolean keepAlive = request.headers().get(HttpHeaders.Names.CONNECTION) == HttpHeaders.Values.KEEP_ALIVE;
 		if(keepAlive) {
-			response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
 			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
 		if(Configurator.instance().getProperty("allow_cross_domain", "no").equalsIgnoreCase("yes")) {
-			response.headers().add("Access-Control-Allow-Origin", "*");
-			response.headers().add("Access-Control-Allow-Methods", "POST, GET");
-			response.headers().add("Access-Control-Allow-Headers", "X-PINGARUNER");
-			response.headers().add("Access-Control-Max-Age", "1728000");
+			response.headers().add(Names.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET");
+			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
+			response.headers().add(Names.ACCESS_CONTROL_MAX_AGE, "1728000");
 		}
+		
+		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
 
 		ctx.write(response);
 	}
