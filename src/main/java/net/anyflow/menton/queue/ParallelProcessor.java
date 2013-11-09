@@ -25,6 +25,10 @@ public abstract class ParallelProcessor<Item> implements Processor<Item> {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ParallelProcessor.class);
 
+	protected static final int defaultProcessingThreadSize = Runtime.getRuntime().availableProcessors() * 4;
+	
+	private static final ExecutorService executor = Executors.newFixedThreadPool(defaultProcessingThreadSize);
+	
 	class Task implements Callable<Boolean> {
 
 		Item item;
@@ -46,7 +50,12 @@ public abstract class ParallelProcessor<Item> implements Processor<Item> {
 			return process(item);
 		}
 	}
-
+	
+	/**
+	 * @return the thread pool size.
+	 */
+	public abstract int processingThreadSize();
+	
 	/**
 	 * @param item
 	 *            item to process
@@ -98,10 +107,11 @@ public abstract class ParallelProcessor<Item> implements Processor<Item> {
 	 */
 	@Override
 	public void process(List<Item> items) {
+		
+		logger.debug("ParallelProcessor request size: {}", items.size());
 
 		Map<Task, Future<Boolean>> tasks = new HashMap<Task, Future<Boolean>>();
-
-		ExecutorService executor = Executors.newCachedThreadPool();
+		
 		for(Item item : items) {
 			Task task = new Task(item);
 

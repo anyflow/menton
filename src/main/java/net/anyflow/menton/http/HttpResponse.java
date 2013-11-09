@@ -74,6 +74,8 @@ public class HttpResponse extends DefaultFullHttpResponse {
 	}
 
 	public void setContent(String content) {
+		if(content == null) { content = ""; }
+		
 		content().writeBytes(content.getBytes(CharsetUtil.UTF_8));
 		logger.debug(content().toString(CharsetUtil.UTF_8));
 	}
