@@ -11,4 +11,7 @@ target/
 # eclipse related files #
 .project
 .settings
-.classpath
+.classpah
+
+# etc
+.DS_store
