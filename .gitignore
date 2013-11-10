@@ -12,3 +12,6 @@ target/
 .project
 .settings
 .classpath
+
+#etc
+.DS_Store
