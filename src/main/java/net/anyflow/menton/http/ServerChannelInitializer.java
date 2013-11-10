@@ -40,7 +40,10 @@ public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> 
 		// HttpServerHandler should be added last after outbound handlers in spite of it is inbound handler.
 		// Otherwise, outbound handlers will not be handled.
 
-		ch.pipeline().addLast("log", new LoggingHandler("menton/server", Configurator.instance().getLogLevel()));
+		if("yes".equalsIgnoreCase(Configurator.instance().getProperty("write_netty_log"))) {
+			ch.pipeline().addLast("log", new LoggingHandler("menton/server", Configurator.instance().getLogLevel()));
+		}
+
 		ch.pipeline().addLast("decoder", new HttpRequestDecoder());
 		ch.pipeline().addLast("aggregator", new io.netty.handler.codec.http.HttpObjectAggregator(1048576)); // Handle HttpChunks.
 		ch.pipeline().addLast("encoder", new HttpResponseEncoder());
