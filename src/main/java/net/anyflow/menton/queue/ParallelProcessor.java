@@ -24,11 +24,8 @@ import java.util.concurrent.TimeoutException;
 public abstract class ParallelProcessor<Item> implements Processor<Item> {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ParallelProcessor.class);
+	private static final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
 
-	protected static final int defaultProcessingThreadSize = Runtime.getRuntime().availableProcessors() * 4;
-	
-	private static final ExecutorService executor = Executors.newFixedThreadPool(defaultProcessingThreadSize);
-	
 	class Task implements Callable<Boolean> {
 
 		Item item;
@@ -47,15 +44,14 @@ public abstract class ParallelProcessor<Item> implements Processor<Item> {
 		 */
 		@Override
 		public Boolean call() throws Exception {
+
+			String threadName = Thread.currentThread().getName();
+			Thread.currentThread().setName(ParallelProcessor.class.getSimpleName() + "-" + threadName.charAt(threadName.length() - 1));
+
 			return process(item);
 		}
 	}
-	
-	/**
-	 * @return the thread pool size.
-	 */
-	public abstract int processingThreadSize();
-	
+
 	/**
 	 * @param item
 	 *            item to process
@@ -107,11 +103,11 @@ public abstract class ParallelProcessor<Item> implements Processor<Item> {
 	 */
 	@Override
 	public void process(List<Item> items) {
-		
-		logger.debug("ParallelProcessor request size: {}", items.size());
+
+		logger.debug(ParallelProcessor.class.getSimpleName() + " request size: {}", items.size());
 
 		Map<Task, Future<Boolean>> tasks = new HashMap<Task, Future<Boolean>>();
-		
+
 		for(Item item : items) {
 			Task task = new Task(item);
 
@@ -123,23 +119,23 @@ public abstract class ParallelProcessor<Item> implements Processor<Item> {
 				if(tasks.get(task).get(prcessingTimeout(), TimeUnit.MILLISECONDS) == false) {
 
 					logger.error("Processing " + task.item().toString() + " failed with return.");
-					
+
 					processingFailedWithReturn(task.item());
 				}
 			}
 			catch(InterruptedException e) {
 				logger.error("Processing " + task.item().toString() + " failed with InterruptedException.");
-				
+
 				processingFailedWith(task.item(), e);
 			}
 			catch(ExecutionException e) {
 				logger.error("Processing " + task.item().toString() + " failed with ExecutionException.");
-				
+
 				processingFailedWith(task.item(), e);
 			}
 			catch(TimeoutException e) {
 				logger.error("Processing " + task.item().toString() + " failed with TimeoutException.");
-				
+
 				processingFailedWith(task.item(), e);
 			}
 		}
