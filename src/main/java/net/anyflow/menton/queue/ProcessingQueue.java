@@ -78,7 +78,7 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 			executor.submit(new Consumer(name));
 		}
 
-		logger.info("{}[{}] started.\r\nProcessor count: {}\r\nmax processing size: {}\r\n", new Object[] { this.getClass().getSimpleName(),
+		logger.info("{}[{}] started[Processor count: {} / max processing size: {}]", new Object[] { this.getClass().getSimpleName(),
 				processor.getClass().getSimpleName(), processorCount, processor.maxProcessingSize() });
 	}
 
