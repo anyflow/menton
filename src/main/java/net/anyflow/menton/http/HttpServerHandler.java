@@ -62,6 +62,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 		request = new HttpRequest(ctx.channel(), msg);
 
+		
 		debugRequest(request);
 
 		logger.info(request.getUri().toString() + " requested.");
@@ -110,7 +111,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		if(Configurator.instance().getProperty("allow_cross_domain", "no").equalsIgnoreCase("yes")) {
+		if(Configurator.instance().getProperty("allow_cross_domain", "false").equalsIgnoreCase("true")) {
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
