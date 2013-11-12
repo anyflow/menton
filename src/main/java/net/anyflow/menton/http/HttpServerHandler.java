@@ -14,6 +14,7 @@ import io.netty.handler.codec.http.HttpHeaders.Values;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.handler.logging.LoggingHandler;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -62,10 +63,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 		request = new HttpRequest(ctx.channel(), msg);
 
-		
-		debugRequest(request);
-
-		logger.info(request.getUri().toString() + " requested.");
+		if("true".equalsIgnoreCase(Configurator.instance().getProperty("write_request_log"))) {
+			logger.info(request.toString());
+		}
 
 		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(), request.headers().get(HttpHeaders.Names.COOKIE));
 
@@ -172,47 +172,5 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
 		logger.error(cause.getMessage(), cause);
 		ctx.close();
-	}
-
-	private void debugRequest(HttpRequest request) {
-		if(logger.isDebugEnabled() == false) { return; }
-
-		StringBuilder buf = new StringBuilder();
-
-		buf.setLength(0);
-		buf.append("VERSION: ").append(request.getProtocolVersion()).append("\r\n");
-		buf.append("HOSTNAME: ").append(HttpHeaders.getHost(request, "unknown")).append("\r\n");
-		buf.append("REQUEST_URI: ").append(request.getUri()).append("\r\n\r\n");
-
-		List<Entry<String, String>> headers = request.headers().entries();
-		if(!headers.isEmpty()) {
-			for(Entry<String, String> h : request.headers().entries()) {
-				String key = h.getKey();
-				String value = h.getValue();
-				buf.append("HEADER: ").append(key).append(" = ").append(value).append("\r\n");
-			}
-			buf.append("\r\n");
-		}
-
-		QueryStringDecoder queryStringDecoder = new QueryStringDecoder(request.getUri());
-		Map<String, List<String>> params = queryStringDecoder.parameters();
-		if(!params.isEmpty()) {
-			for(Entry<String, List<String>> p : params.entrySet()) {
-				String key = p.getKey();
-				List<String> vals = p.getValue();
-				for(String val : vals) {
-					buf.append("PARAM: ").append(key).append(" = ").append(val).append("\r\n");
-				}
-			}
-			buf.append("\r\n");
-		}
-
-		DecoderResult result = request.getDecoderResult();
-
-		if(result.isSuccess() == false) {
-			buf.append(".. WITH DECODER FAILURE: ");
-			buf.append(result.cause());
-			buf.append("\r\n");
-		}
 	}
 }
