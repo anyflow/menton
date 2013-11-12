@@ -120,6 +120,10 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		
 		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
 
+		if("true".equalsIgnoreCase(Configurator.instance().getProperty("write_response_log"))) {
+			logger.info(response.toString());
+		}
+		
 		ctx.write(response);
 	}
 

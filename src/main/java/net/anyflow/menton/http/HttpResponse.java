@@ -79,4 +79,28 @@ public class HttpResponse extends DefaultFullHttpResponse {
 		content().writeBytes(content.getBytes(CharsetUtil.UTF_8));
 		logger.debug(content().toString(CharsetUtil.UTF_8));
 	}
+	
+	@Override
+	public String toString() {
+		StringBuilder buf = new StringBuilder();
+		
+		buf.append("\r\n////////////////////// start of HttpResponse").append("\r\n");
+		buf.append("STATUS : " + this.getStatus()).append("\r\n");
+		buf.append("VERSION : " + this.getProtocolVersion()).append("\r\n");
+
+		if(!this.headers().isEmpty()) {
+			for(String name : this.headers().names()) {
+				for(String value : this.headers().getAll(name)) {
+					buf.append("HEADER : " + name + " = " + value).append("\r\n");
+				}
+			}
+		}
+
+		String content = this.content().toString(CharsetUtil.UTF_8);
+		int index = content.length() < 100 ? content.length() : 99;
+		buf.append("THE FIRST 100 characters OF CONTENT : " + content.substring(0, index)).append("\r\n");
+		buf.append("////////////////////// end of HttpResponse").append("\r\n");
+		
+		return buf.toString();
+	}
 }
