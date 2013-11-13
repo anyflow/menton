@@ -154,7 +154,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		RequestHandler requestHandler = (RequestHandler)requestHandlerClass.getConstructors()[0].newInstance();
 
 		requestHandler.initialize(request, response);
-		Method handler = requestHandler.findHandler(requestedPath, request.getMethod().toString());
+		Method handler = requestHandler.find(requestedPath, request.getMethod().toString());
 
 		if(handler == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);

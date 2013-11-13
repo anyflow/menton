@@ -5,6 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import net.anyflow.menton.Configurator;
@@ -18,10 +20,16 @@ import org.slf4j.LoggerFactory;
  */
 public class RequestHandler {
 
-	private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
+	private static Map<String, Class<? extends RequestHandler>> handlerClassMap;
+	private static Map<String, Method> handlerMethodMap;
 
 	private HttpRequest request;
 	private HttpResponse response;
+
+	static {
+		handlerClassMap = new HashMap<String, Class<? extends RequestHandler>>();
+		handlerMethodMap = new HashMap<String, Method>();
+	}
 
 	/**
 	 * @author anyflow
@@ -41,45 +49,6 @@ public class RequestHandler {
 		 * @return http method string
 		 */
 		String[] httpMethods();
-	}
-
-	/**
-	 * @param requestedPath
-	 * @param httpMethod
-	 * @param requestHandlerPackageRoot
-	 * @return
-	 */
-	public static Class<? extends RequestHandler> find(String requestedPath, String httpMethod, String requestHandlerPackageRoot) {
-
-		Reflections reflections = new Reflections(requestHandlerPackageRoot);
-		String contextRoot = Configurator.instance().getHttpContextRoot();
-
-		Set<Class<? extends RequestHandler>> requestHandler = reflections.getSubTypesOf(RequestHandler.class);
-
-		for(Class<? extends RequestHandler> item : requestHandler) {
-
-			RequestHandler.Handles bl = item.getAnnotation(RequestHandler.Handles.class);
-
-			if(bl == null) {
-				continue;
-			}
-
-			for(String method : bl.httpMethods()) {
-				if(method.equalsIgnoreCase(httpMethod) == false) {
-					continue;
-				}
-
-				for(String rawPath : bl.paths()) {
-
-					String path = (rawPath.charAt(0) == '/') ? rawPath : contextRoot + rawPath;
-
-					if(requestedPath.equalsIgnoreCase(path)) { return item; }
-				}
-			}
-		}
-
-		logger.error("Failed to find requestHandler.");
-		return null;
 	}
 
 	public void initialize(HttpRequest request, HttpResponse response) {
@@ -107,7 +76,11 @@ public class RequestHandler {
 	 * @param httpMethod
 	 * @return
 	 */
-	public java.lang.reflect.Method findHandler(String requestedPath, String httpMethod) {
+	public java.lang.reflect.Method find(String requestedPath, String httpMethod) {
+
+		String findKey = requestedPath + httpMethod;
+
+		if(handlerMethodMap.containsKey(findKey)) { return handlerMethodMap.get(findKey); }
 
 		String contextRoot = Configurator.instance().getHttpContextRoot();
 
@@ -130,12 +103,61 @@ public class RequestHandler {
 
 					String path = (rawPath.charAt(0) == '/') ? rawPath : contextRoot + rawPath;
 
-					if(requestedPath.equalsIgnoreCase(path)) { return item; }
+					if(requestedPath.equalsIgnoreCase(path)) {
+						handlerMethodMap.put(findKey, item);
+						return item;
+					}
 				}
 			}
 		}
 
-		logger.error("Failed to find requestHandler.");
+		handlerMethodMap.put(findKey, null);
+		return null;
+	}
+
+	/**
+	 * @param requestedPath
+	 * @param httpMethod
+	 * @param requestHandlerPackageRoot
+	 * @return
+	 */
+	public static Class<? extends RequestHandler> find(String requestedPath, String httpMethod, String requestHandlerPackageRoot) {
+
+		String findKey = requestedPath + httpMethod;
+
+		if(handlerClassMap.containsKey(findKey)) { return handlerClassMap.get(findKey); }
+
+		Reflections reflections = new Reflections(requestHandlerPackageRoot);
+		String contextRoot = Configurator.instance().getHttpContextRoot();
+
+		Set<Class<? extends RequestHandler>> requestHandler = reflections.getSubTypesOf(RequestHandler.class);
+
+		for(Class<? extends RequestHandler> item : requestHandler) {
+
+			RequestHandler.Handles bl = item.getAnnotation(RequestHandler.Handles.class);
+
+			if(bl == null) {
+				continue;
+			}
+
+			for(String method : bl.httpMethods()) {
+				if(method.equalsIgnoreCase(httpMethod) == false) {
+					continue;
+				}
+
+				for(String rawPath : bl.paths()) {
+
+					String path = (rawPath.charAt(0) == '/') ? rawPath : contextRoot + rawPath;
+
+					if(requestedPath.equalsIgnoreCase(path)) {
+						handlerClassMap.put(findKey, item);
+						return item;
+					}
+				}
+			}
+		}
+
+		handlerClassMap.put(findKey, null);
 		return null;
 	}
 }
