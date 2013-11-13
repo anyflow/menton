@@ -5,24 +5,17 @@ package net.anyflow.menton.http;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.DecoderResult;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders.Names;
-import io.netty.handler.codec.http.HttpHeaders.Values;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.logging.LoggingHandler;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.exception.DefaultException;
@@ -117,13 +110,13 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
 			response.headers().add(Names.ACCESS_CONTROL_MAX_AGE, "1728000");
 		}
-		
+
 		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
 
 		if("true".equalsIgnoreCase(Configurator.instance().getProperty("write_response_log"))) {
 			logger.info(response.toString());
 		}
-		
+
 		ctx.write(response);
 	}
 
