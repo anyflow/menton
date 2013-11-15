@@ -6,7 +6,6 @@ package net.anyflow.menton.queue;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.PriorityQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,14 +33,13 @@ public class PumpingQueue<Item> {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PumpingQueue.class);
 	private static final int defaultProcessingThreadSize = Runtime.getRuntime().availableProcessors() * 4;
-	
 
 	private final PriorityBlockingQueue<Item> queue;
 	private final Processor<Item> processor;
 	private final Synchronization synchronization;
 	private final List<Future<?>> tasks;
 	private final int processingThreadSize;
-	
+
 	/**
 	 * <p>
 	 * Processing type
@@ -65,7 +63,7 @@ public class PumpingQueue<Item> {
 	}
 
 	public PumpingQueue(Processor<Item> processor, Synchronization synchronization) {
-		
+
 		this(processor, synchronization, null, defaultProcessingThreadSize);
 	}
 
@@ -75,7 +73,7 @@ public class PumpingQueue<Item> {
 		this.synchronization = synchronization;
 
 		this.processingThreadSize = processingThreadSize;
-		
+
 		queue = new PriorityBlockingQueue<Item>(processor.maxProcessingSize(), comparator);
 		tasks = new ArrayList<Future<?>>();
 	}
@@ -103,7 +101,7 @@ public class PumpingQueue<Item> {
 	public int size() {
 		return queue.size();
 	}
-	
+
 	public void enqueue(Item item) {
 
 		if(queue.contains(item)) { return; }
@@ -141,7 +139,7 @@ public class PumpingQueue<Item> {
 			@Override
 			public void run() {
 				ExecutorService executor = Executors.newFixedThreadPool(processingThreadSize);
-				
+
 				while(true) {
 					final ArrayList<Item> targets = new ArrayList<Item>(); // the list should be created per loop.
 
