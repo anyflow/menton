@@ -23,6 +23,19 @@ public class Configurator extends java.util.Properties {
 		return instance;
 	}
 
+	public int getInt(String key, int defaultValue) {
+		String valueString = this.getProperty(key);
+		
+		if(valueString == null) { return defaultValue; }
+		
+		try {
+			return Integer.parseInt(valueString);
+		}
+		catch(NumberFormatException e) {
+			return defaultValue;
+		}
+	}
+	
 	/**
 	 * initialize the configurator
 	 * 
@@ -63,21 +76,21 @@ public class Configurator extends java.util.Properties {
 	 * @return http port
 	 */
 	public int getHttpPort() {
-		return Integer.parseInt(getProperty("httpServer.port", "8090"));
+		return Integer.parseInt(getProperty("menton.httpServer.port", "8090"));
 	}
 
 	/**
 	 * @return avro port
 	 */
 	public int getAvroPort() {
-		return Integer.parseInt(getProperty("avroServer.port", "9090"));
+		return Integer.parseInt(getProperty("menton.avroServer.port", "9090"));
 	}
 
 	/**
 	 * @return context root path
 	 */
 	public String getHttpContextRoot() {
-		String ret = getProperty("httpServer.contextRoot", "/");
+		String ret = getProperty("menton.httpServer.contextRoot", "/");
 
 		if(ret.equalsIgnoreCase("") || ret.charAt(ret.length() - 1) != '/') {
 			ret += "/";

@@ -63,7 +63,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 		request = new HttpRequest(ctx.channel(), msg);
 
-		if("true".equalsIgnoreCase(Configurator.instance().getProperty("write_request_log"))) {
+		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpRequest"))) {
 			logger.info(request.toString());
 		}
 
@@ -111,7 +111,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		if(Configurator.instance().getProperty("allow_cross_domain", "false").equalsIgnoreCase("true")) {
+		if(Configurator.instance().getProperty("menton.httpServer.allowCrossDomain", "false").equalsIgnoreCase("true")) {
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
@@ -120,7 +120,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		
 		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
 
-		if("true".equalsIgnoreCase(Configurator.instance().getProperty("write_response_log"))) {
+		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpResponse"))) {
 			logger.info(response.toString());
 		}
 		

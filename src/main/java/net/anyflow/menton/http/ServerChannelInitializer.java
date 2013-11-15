@@ -40,7 +40,7 @@ public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> 
 		// HttpServerHandler should be added last after outbound handlers in spite of it is inbound handler.
 		// Otherwise, outbound handlers will not be handled.
 
-		if("true".equalsIgnoreCase(Configurator.instance().getProperty("write_netty_log"))) {
+		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writelogOfNettyLogger"))) {
 			ch.pipeline().addLast("log", new LoggingHandler("menton/server", Configurator.instance().getLogLevel()));
 		}
 

@@ -41,8 +41,8 @@ public class HttpServer {
 	private static void start(String requestHandlerPackageRoot, Class<? extends RequestHandler> requestHandlerClass, int port) {
 		Thread.currentThread().setName("server/main");
 
-		bossGroup = new NioEventLoopGroup(0, new DefaultThreadFactory("server/boss"));
-		workerGroup = new NioEventLoopGroup(0, new DefaultThreadFactory("server/worker"));
+		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0), new DefaultThreadFactory("server/boss"));
+		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory("server/worker"));
 
 		try {
 			ServerBootstrap bootstrap = new ServerBootstrap();
