@@ -117,7 +117,7 @@ public class HttpClient {
 			return null;
 		}
 
-		final EventLoopGroup group = new NioEventLoopGroup(0, new DefaultThreadFactory("client"));
+		final EventLoopGroup group = new NioEventLoopGroup(1, new DefaultThreadFactory("client"));
 
 		HttpRequest request = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri.getRawPath()));
 
