@@ -46,7 +46,7 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 		this.queue = new PriorityBlockingQueue<Item>(processor.maxProcessingSize());
 		this.consumers = new ArrayList<Consumer>();
 		this.taskCompletionBehaviors = new ArrayList<TaskCompletionBehavior>();
-		this.shutdownSignaled = true;
+		this.shutdownSignaled = false;
 		this.maxSize = null;
 	}
 
@@ -55,13 +55,19 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 	}
 
 	public void signalShutdown() {
-		this.shutdownSignaled = false;
+		this.shutdownSignaled = true;
+		
+		fireTaskCompletedOnTheCase();
 	}
 
 	public boolean isShutdownSignaled() {
 		return this.shutdownSignaled;
 	}
 
+	public Processor<Item> processor() {
+		return processor;
+	}
+	
 	/**
 	 * @return queue size
 	 */
@@ -126,6 +132,15 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 		return true;
 	}
 
+	private void fireTaskCompletedOnTheCase() {
+		
+		if(isTaskCompleted()) {
+			for(TaskCompletionBehavior tcb : taskCompletionBehaviors) {
+				tcb.taskCompleted(processor.getClass().getSimpleName(), shutdownSignaled);
+			}
+		}
+	}
+	
 	class Consumer implements Runnable {
 
 		private final String name;
@@ -155,11 +170,8 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 
 				try {
 					isSuspended = true;
-					if(isTaskCompleted()) {
-						for(TaskCompletionBehavior tcb : taskCompletionBehaviors) {
-							tcb.taskCompleted(shutdownSignaled);
-						}
-					}
+					
+					fireTaskCompletedOnTheCase();
 
 					targets.add(queue.take()); // wait until item inserted newly.
 					isSuspended = false;

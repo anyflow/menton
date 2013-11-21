@@ -11,8 +11,8 @@ public interface TaskCompletionBehavior {
 	/**
 	 * called after task completed
 	 * 
-	 * @param safeToShutdown
-	 *            true if shutdown is safe
+	 * @param taskName completed task name
+	 * @param safeToShutdown true if shutdown is safe
 	 */
-	void taskCompleted(boolean safeToShutdown);
+	void taskCompleted(String taskName, boolean safeToShutdown);
 }
