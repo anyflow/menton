@@ -9,6 +9,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 
+import net.anyflow.menton.general.TaskCompletionInformer;
+import net.anyflow.menton.general.TaskCompletionListener;
+
 /**
  * <p>
  * Queue with dedicated consumer threads, which processes Items via {@link net.anyflow.menton.queue.Processor}.
@@ -22,7 +25,7 @@ import java.util.concurrent.PriorityBlockingQueue;
  * @param <Item>
  *            processing target type
  */
-public class ProcessingQueue<Item extends Comparable<Item>> {
+public class ProcessingQueue<Item extends Comparable<Item>> implements TaskCompletionInformer {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ProcessingQueue.class);
 	private static final int DEFAULT_PROCESSOR_COUNT = Runtime.getRuntime().availableProcessors() * 2;
@@ -30,7 +33,7 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 	private final PriorityBlockingQueue<Item> queue;
 	private final Processor<Item> processor;
 	private List<Consumer> consumers;
-	private List<TaskCompletionBehavior> taskCompletionBehaviors;
+	private List<TaskCompletionListener> taskCompletionListeners;
 
 	private final int processorCount;
 	private boolean shutdownSignaled;
@@ -45,19 +48,46 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 		this.processorCount = processorCount;
 		this.queue = new PriorityBlockingQueue<Item>(processor.maxProcessingSize());
 		this.consumers = new ArrayList<Consumer>();
-		this.taskCompletionBehaviors = new ArrayList<TaskCompletionBehavior>();
+		this.taskCompletionListeners = new ArrayList<TaskCompletionListener>();
 		this.shutdownSignaled = false;
 		this.maxSize = null;
 	}
 
-	public void registerTaskCompletionBehavior(TaskCompletionBehavior tcb) {
-		this.taskCompletionBehaviors.add(tcb);
+	/*
+	 * (non-Javadoc)
+	 * @see net.anyflow.menton.general.TaskCompletionInformer#register(net.anyflow.menton.general.TaskCompletionListener)
+	 */
+	@Override
+	public void register(TaskCompletionListener taskCompletionListener) {
+		this.taskCompletionListeners.add(taskCompletionListener);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see net.anyflow.menton.general.TaskCompletionInformer#deregister(net.anyflow.menton.general.TaskCompletionListener)
+	 */
+	@Override
+	public void deregister(TaskCompletionListener taskCompletionListener) {
+		this.taskCompletionListeners.remove(taskCompletionListener);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see net.anyflow.menton.general.TaskCompletionInformer#inform()
+	 */
+	@Override
+	public void inform() {
+		if(isTaskCompleted() == false) { return; }
+
+		for(TaskCompletionListener taskCompletionListener : taskCompletionListeners) {
+			taskCompletionListener.taskCompleted(this, !shutdownSignaled);
+		}
 	}
 
 	public void signalShutdown() {
 		this.shutdownSignaled = true;
-		
-		fireTaskCompletedOnTheCase();
+
+		inform();
 	}
 
 	public boolean isShutdownSignaled() {
@@ -67,7 +97,7 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 	public Processor<Item> processor() {
 		return processor;
 	}
-	
+
 	/**
 	 * @return queue size
 	 */
@@ -132,15 +162,6 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 		return true;
 	}
 
-	private void fireTaskCompletedOnTheCase() {
-		
-		if(isTaskCompleted()) {
-			for(TaskCompletionBehavior tcb : taskCompletionBehaviors) {
-				tcb.taskCompleted(processor.getClass().getSimpleName(), shutdownSignaled);
-			}
-		}
-	}
-	
 	class Consumer implements Runnable {
 
 		private final String name;
@@ -170,8 +191,8 @@ public class ProcessingQueue<Item extends Comparable<Item>> {
 
 				try {
 					isSuspended = true;
-					
-					fireTaskCompletedOnTheCase();
+
+					inform();
 
 					targets.add(queue.take()); // wait until item inserted newly.
 					isSuspended = false;
