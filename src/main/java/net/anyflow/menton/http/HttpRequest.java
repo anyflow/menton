@@ -108,8 +108,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 			buf.append("\r\n");
 		}
 
-		QueryStringDecoder queryStringDecoder = new QueryStringDecoder(this.getUri());
-		Map<String, List<String>> params = queryStringDecoder.parameters();
+		Map<String, List<String>> params = parameters();
 		if(!params.isEmpty()) {
 			for(Entry<String, List<String>> p : params.entrySet()) {
 				String key = p.getKey();
