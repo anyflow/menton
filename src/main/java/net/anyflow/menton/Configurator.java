@@ -12,6 +12,11 @@ import java.io.Reader;
  */
 public class Configurator extends java.util.Properties {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 5431592702381235221L;
+
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Configurator.class);
 	private static Configurator instance;
 
@@ -25,9 +30,9 @@ public class Configurator extends java.util.Properties {
 
 	public int getInt(String key, int defaultValue) {
 		String valueString = this.getProperty(key);
-		
+
 		if(valueString == null) { return defaultValue; }
-		
+
 		try {
 			return Integer.parseInt(valueString);
 		}
@@ -35,7 +40,7 @@ public class Configurator extends java.util.Properties {
 			return defaultValue;
 		}
 	}
-	
+
 	/**
 	 * initialize the configurator
 	 * 

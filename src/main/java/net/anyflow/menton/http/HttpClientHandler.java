@@ -6,7 +6,6 @@ package net.anyflow.menton.http;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

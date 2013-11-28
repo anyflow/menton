@@ -12,8 +12,6 @@ import java.util.Set;
 import net.anyflow.menton.Configurator;
 
 import org.reflections.Reflections;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author anyflow Base class for business logic. The class contains common stuffs for generating business logic.
