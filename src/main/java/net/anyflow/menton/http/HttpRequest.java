@@ -3,8 +3,13 @@
  */
 package net.anyflow.menton.http;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.DecoderResult;
+import io.netty.handler.codec.http.ClientCookieEncoder;
+import io.netty.handler.codec.http.Cookie;
+import io.netty.handler.codec.http.CookieDecoder;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -12,16 +17,31 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.CharsetUtil;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author anyflow
  */
 public class HttpRequest extends DefaultFullHttpRequest {
 
+	private static final Logger logger = LoggerFactory.getLogger(HttpRequest.class);
+
 	private Channel channel;
+	private final Map<String, List<String>> parameters;
+	private final URI uri;
+	private final Set<Cookie> cookies;
 
 	/**
 	 * @param channel
@@ -31,35 +51,62 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	 * @param content
 	 * @param headers
 	 * @param decoderResult
+	 * @throws URISyntaxException
 	 */
-	public HttpRequest(Channel channel, FullHttpRequest fullHttpRequest) {
+	public HttpRequest(Channel channel, FullHttpRequest fullHttpRequest) throws URISyntaxException {
 		super(fullHttpRequest.getProtocolVersion(), fullHttpRequest.getMethod(), fullHttpRequest.getUri(), fullHttpRequest.content().copy());
 
 		this.channel = channel;
 		this.headers().set(fullHttpRequest.headers());
 		this.trailingHeaders().set(fullHttpRequest.trailingHeaders());
 		this.setDecoderResult(fullHttpRequest.getDecoderResult());
+		this.uri = new URI(fullHttpRequest.getUri());
+		this.parameters = parameters();
+		this.cookies = cookies();
 	}
 
 	public String host() {
 		return this.headers().get(HttpHeaders.Names.HOST);
 	}
 
-	public Map<String, List<String>> parameters() {
-		String queryStringParam = null;
+	/**
+	 * @return
+	 */
+	public Set<Cookie> cookies() {
+		if(cookies != null) { return cookies; }
 
-		if(getMethod().equals(HttpMethod.GET)) {
-			queryStringParam = getUri();
-		}
-		else if(getMethod().equals(HttpMethod.POST)) {
-			String dummy = "/dummy?";
-			queryStringParam = dummy + content().toString(CharsetUtil.UTF_8);
+		Set<Cookie> ret = CookieDecoder.decode(headers().get(HttpHeaders.Names.COOKIE));
+		
+		if(ret.isEmpty()) {
+			return new HashSet<Cookie>();
 		}
 		else {
-			throw new UnsupportedOperationException("only GET/POST http methods are supported.");
+			return ret;
+		}
+	}
+
+	public Map<String, List<String>> parameters() {
+
+		if(parameters != null) { return parameters; }
+
+		String queryString = null;
+
+		if(getMethod().equals(HttpMethod.GET)) {
+			queryString = getUri();
+		}
+		else if(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED.equals(headers().get(HttpHeaders.Names.CONTENT_TYPE))
+				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
+			String dummy = "/dummy?";
+			queryString = dummy + content().toString(CharsetUtil.UTF_8);
+		}
+		else {
+			// HttpMethod is not GET / PUT /POST, so parameters() cannot contain any item;
+			return Collections.emptyMap();
 		}
 
-		return (new QueryStringDecoder(queryStringParam)).parameters();
+		Map<String, List<String>> ret = (new QueryStringDecoder(queryString)).parameters();
+
+		return ret.isEmpty() ? new HashMap<String, List<String>>() : ret;
 	}
 
 	/**
@@ -70,9 +117,8 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	 * @return The first value of the parameter name. If it does not exist, it returns an empty string.
 	 */
 	public String parameter(String name) {
-		Map<String, List<String>> params = parameters();
 
-		if(params.containsKey(name) == false || params.get(name).size() <= 0) { return ""; }
+		if(parameters().containsKey(name) == false || parameters().get(name).size() <= 0) { return ""; }
 
 		return parameters().get(name).get(0);
 	}
@@ -84,13 +130,14 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	public void setChannel(Channel channel) {
 		this.channel = channel;
 	}
-	
-	/* (non-Javadoc)
+
+	/*
+	 * (non-Javadoc)
 	 * @see io.netty.handler.codec.http.DefaultHttpRequest#toString()
 	 */
 	@Override
 	public String toString() {
-		
+
 		StringBuilder buf = new StringBuilder();
 
 		buf.setLength(0);
@@ -127,7 +174,68 @@ public class HttpRequest extends DefaultFullHttpRequest {
 			buf.append(result.cause());
 			buf.append("\r\n");
 		}
-		
+
 		return buf.toString();
+	}
+
+	public void setContent(String content) {
+		if(content == null) {
+			content = "";
+		}
+
+		content().writeBytes(content.getBytes(CharsetUtil.UTF_8));
+		logger.debug(content().toString(CharsetUtil.UTF_8));
+	}
+
+	public URI uri() {
+		return uri;
+	}
+
+	public void normalize() {
+		setupParameters();
+
+		headers().set(HttpHeaders.Names.COOKIE, ClientCookieEncoder.encode(cookies));
+	}
+
+	private String convertParametersToString() {
+
+		StringBuilder builder = new StringBuilder();
+
+		for(String name : parameters().keySet()) {
+
+			for(String value : parameters().get(name)) {
+				builder = builder.append(name).append("=").append(value).append("&");
+			}
+		}
+
+		String ret = builder.toString();
+
+		if(ret.charAt(ret.length() - 1) == '&') {
+			return ret.substring(0, ret.length() - 2);
+		}
+		else {
+			return ret;
+		}
+	}
+
+	private void setupParameters() {
+
+		String address = (new StringBuilder()).append(uri().getScheme()).append("://").append(uri().getAuthority()).append(uri().getPath())
+				.toString();
+
+		if(getMethod() == HttpMethod.GET) {
+			address += "?" + convertParametersToString();
+		}
+		else if(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED.equals(headers().get(HttpHeaders.Names.CONTENT_TYPE))
+				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
+
+			ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), Charset.forName("UTF-8"));
+
+			content().clear();
+			content().writeBytes(content);
+			headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
+		}
+
+		setUri(address);
 	}
 }
