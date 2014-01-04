@@ -18,7 +18,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import net.anyflow.menton.Configurator;
-import net.anyflow.menton.exception.DefaultException;
 
 /**
  * @author anyflow
@@ -120,8 +119,8 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		ctx.write(response);
 	}
 
-	private String handleClassTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws DefaultException,
-			InstantiationException, IllegalAccessException {
+	private String handleClassTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws InstantiationException,
+			IllegalAccessException {
 
 		Class<? extends RequestHandler> handlerClass = RequestHandler.find(requestedPath, request.getMethod().toString(),
 				this.requestHandlerPackageRoot);
@@ -141,8 +140,8 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		}
 	}
 
-	private String handleMethodTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws DefaultException,
-			IllegalAccessException, InvocationTargetException, IllegalArgumentException, SecurityException, InstantiationException {
+	private String handleMethodTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws IllegalAccessException,
+			InvocationTargetException, IllegalArgumentException, SecurityException, InstantiationException {
 
 		RequestHandler requestHandler = (RequestHandler)requestHandlerClass.getConstructors()[0].newInstance();
 

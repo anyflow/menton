@@ -20,13 +20,13 @@ import io.netty.util.CharsetUtil;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,8 +75,11 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	public Set<Cookie> cookies() {
 		if(cookies != null) { return cookies; }
 
-		Set<Cookie> ret = CookieDecoder.decode(headers().get(HttpHeaders.Names.COOKIE));
-		
+		String cookie = headers().get(HttpHeaders.Names.COOKIE);
+		if(cookie == null || "".equals(cookie)) { return new HashSet<Cookie>(); }
+
+		Set<Cookie> ret = CookieDecoder.decode(cookie);
+
 		if(ret.isEmpty()) {
 			return new HashSet<Cookie>();
 		}
@@ -100,8 +103,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 			queryString = dummy + content().toString(CharsetUtil.UTF_8);
 		}
 		else {
-			// HttpMethod is not GET / PUT /POST, so parameters() cannot contain any item;
-			return Collections.emptyMap();
+			return new HashMap<String, List<String>>();
 		}
 
 		Map<String, List<String>> ret = (new QueryStringDecoder(queryString)).parameters();
@@ -118,9 +120,25 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	 */
 	public String parameter(String name) {
 
-		if(parameters().containsKey(name) == false || parameters().get(name).size() <= 0) { return ""; }
+		if(parameters().containsKey(name) == false || parameters.get(name).size() <= 0) { return null; }
 
 		return parameters().get(name).get(0);
+	}
+
+	public HttpRequest addParameter(String name, String value) {
+
+		List<String> values = parameters().get(name);
+		if(values == null) {
+			values = new ArrayList<String>();
+			values.add(value);
+			parameters().put(name, values);
+		}
+		else {
+			values.clear();
+			values.add(value);
+		}
+
+		return this;
 	}
 
 	public Channel channel() {
@@ -209,9 +227,10 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		}
 
 		String ret = builder.toString();
+		if(ret.length() <= 0) { return ""; }
 
 		if(ret.charAt(ret.length() - 1) == '&') {
-			return ret.substring(0, ret.length() - 2);
+			return ret.substring(0, ret.length() - 1);
 		}
 		else {
 			return ret;
@@ -231,9 +250,9 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 			ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), Charset.forName("UTF-8"));
 
+			headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
 			content().clear();
 			content().writeBytes(content);
-			headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
 		}
 
 		setUri(address);

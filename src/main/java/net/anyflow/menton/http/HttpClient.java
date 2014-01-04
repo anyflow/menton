@@ -20,8 +20,6 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 
-import net.anyflow.menton.exception.DefaultException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,62 +30,91 @@ public class HttpClient {
 
 	static final Logger logger = LoggerFactory.getLogger(HttpClient.class);
 
-	private HttpRequest httpRequest;
-	
-	public HttpClient(String uri, HttpMethod httpMethod) throws URISyntaxException {
-		
-		httpRequest = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri));
+	private final HttpRequest httpRequest;
+
+	public HttpClient(String uri) throws URISyntaxException, UnsupportedOperationException {
+
+		httpRequest = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri));
+
+		if(httpRequest().uri().getScheme().equalsIgnoreCase("http") == false) {
+			String message = "HTTP is supported only.";
+			logger.error(message);
+			throw new UnsupportedOperationException(message);
+		}
 	}
-	
+
 	public HttpRequest httpRequest() {
 		return httpRequest;
 	}
 
-	/**
-	 * Request with encoding utf-8
-	 * 
-	 * @param receiver
-	 * @return if receiver is not null and the request processed successfully, returns HttpResponse instance, otherwise null;
-	 * @throws IllegalArgumentException
-	 * @throws UnsupportedEncodingException
-	 */
-	public HttpResponse request(final MessageReceiver receiver) throws IllegalArgumentException, UnsupportedEncodingException {
-		return request(receiver, "utf-8");
+	public HttpResponse get() {
+		return get(null);
+	}
+
+	public HttpResponse get(final MessageReceiver receiver) {
+		httpRequest().setMethod(HttpMethod.GET);
+
+		return request(receiver);
+	}
+
+	public HttpResponse post() {
+		return post(null);
+	}
+
+	public HttpResponse post(final MessageReceiver receiver) {
+
+		httpRequest().setMethod(HttpMethod.POST);
+		if(httpRequest().headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
+			httpRequest().headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
+		}
+
+		return request(receiver);
+	}
+
+	public HttpResponse put() {
+		return put(null);
+	}
+
+	public HttpResponse put(final MessageReceiver receiver) {
+		httpRequest().setMethod(HttpMethod.PUT);
+
+		if(httpRequest().headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
+			httpRequest().headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
+		}
+
+		return request(receiver);
+	}
+
+	public HttpResponse delete() {
+		return delete(null);
+	}
+
+	public HttpResponse delete(final MessageReceiver receiver) {
+		httpRequest().setMethod(HttpMethod.DELETE);
+
+		return request(receiver);
 	}
 
 	/**
 	 * request.
 	 * 
 	 * @param receiver
-	 * @param queryEncodingCharset
-	 *            query encoding charset. if it is null, no encoding will be applied.
 	 * @return if receiver is not null the request processed successfully, returns HttpResponse instance, otherwise null;
-	 * @throws DefaultException
 	 * @throws UnsupportedEncodingException
 	 */
-	public HttpResponse request(final MessageReceiver receiver, String queryEncodingCharset) throws IllegalArgumentException,
-			UnsupportedEncodingException {
-
-		Thread.currentThread().setName("client/main");
+	private HttpResponse request(final MessageReceiver receiver) throws IllegalArgumentException {
 
 		boolean ssl = false;
-
-		// TODO support HTTPS
-		if(!httpRequest().uri().getScheme().equalsIgnoreCase("http") && !httpRequest().uri().getScheme().equalsIgnoreCase("https")) {
-			logger.error("Only HTTP(S) is supported.");
-			return null;
-		}
 
 		final EventLoopGroup group = new NioEventLoopGroup(1, new DefaultThreadFactory("client"));
 
 		httpRequest().normalize();
 		setHeaders();
-	
 
 		if(logger.isDebugEnabled()) {
-			logger.debug("[request] URI : {}", httpRequest.getUri());
-			logger.debug("[request] CONTENT : {}", httpRequest.content().toString(CharsetUtil.UTF_8));
-			logger.debug("[request] HTTPMETHOD : {}", httpRequest.getMethod().toString());
+			logger.debug("[request] URI : {}", httpRequest().getUri());
+			logger.debug("[request] CONTENT : {}", httpRequest().content().toString(CharsetUtil.UTF_8));
+			logger.debug("[request] HTTPMETHOD : {}", httpRequest().getMethod().toString());
 
 			for(String name : httpRequest.headers().names()) {
 				logger.debug("[request] HEADER : " + name + " = " + httpRequest.headers().get(name));
@@ -131,10 +158,6 @@ public class HttpClient {
 	}
 
 	private void setHeaders() {
-
-		if(httpRequest().getMethod() == HttpMethod.POST && httpRequest().headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
-		}
 
 		if(httpRequest().headers().contains(HttpHeaders.Names.HOST) == false) {
 			httpRequest().headers().set(HttpHeaders.Names.HOST, httpRequest().host() == null ? "localhost" : httpRequest().host());
