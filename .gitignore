@@ -15,3 +15,6 @@ target/
 
 #etc
 .DS_Store
+
+#buildinfo.properties
+src/main/resources/META-INF/buildinfo.properties
