@@ -91,10 +91,6 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		return new URI(scheme, temp.getUserInfo(), temp.getHost(), port, temp.getPath(), temp.getQuery(), temp.getFragment());
 	}
 	
-	public String host() {
-		return this.headers().get(HttpHeaders.Names.HOST);
-	}
-
 	/**
 	 * @return
 	 */
@@ -276,7 +272,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		else if(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED.equals(headers().get(HttpHeaders.Names.CONTENT_TYPE))
 				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
 
-			ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), Charset.forName("UTF-8"));
+			ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), CharsetUtil.UTF_8);
 
 			headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
 			content().clear();

@@ -127,7 +127,7 @@ public class HttpClient {
 		bootstrap.group(group).channel(NioSocketChannel.class).handler(new ClientChannelInitializer(clientHandler, ssl));
 
 		try {
-			Channel channel = bootstrap.connect(httpRequest().host(), httpRequest().uri().getPort()).sync().channel();
+			Channel channel = bootstrap.connect(httpRequest().uri().getHost(), httpRequest().uri().getPort()).sync().channel();
 			channel.writeAndFlush(httpRequest);
 
 			if(receiver == null) {
@@ -160,7 +160,7 @@ public class HttpClient {
 	private void setHeaders() {
 
 		if(httpRequest().headers().contains(HttpHeaders.Names.HOST) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.HOST, httpRequest().host() == null ? "localhost" : httpRequest().host());
+			httpRequest().headers().set(HttpHeaders.Names.HOST, httpRequest().uri().getHost());
 		}
 		if(httpRequest().headers().contains(HttpHeaders.Names.CONNECTION) == false) {
 			httpRequest().headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
