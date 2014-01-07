@@ -4,16 +4,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.QueryStringDecoder;
 
-import java.net.URI;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
 import net.anyflow.menton.http.HttpClient;
-import net.anyflow.menton.http.HttpResponse;
 
 import org.junit.After;
 import org.junit.Before;
