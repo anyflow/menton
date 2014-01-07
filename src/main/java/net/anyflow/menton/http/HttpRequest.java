@@ -19,6 +19,7 @@ import io.netty.util.CharsetUtil;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,11 +61,36 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		this.headers().set(fullHttpRequest.headers());
 		this.trailingHeaders().set(fullHttpRequest.trailingHeaders());
 		this.setDecoderResult(fullHttpRequest.getDecoderResult());
-		this.uri = new URI(fullHttpRequest.getUri());
+		this.uri = createUriWithNormalizing(fullHttpRequest.getUri());
+
 		this.parameters = parameters();
 		this.cookies = cookies();
 	}
 
+	private URI createUriWithNormalizing(String uri) throws URISyntaxException {
+		URI temp = new URI(uri);
+		
+		String scheme = temp.getScheme();
+		if(scheme == null) {
+			scheme = "http";
+		}
+		
+		int port = temp.getPort();
+		if(port == -1) {
+			if(scheme.equalsIgnoreCase("http")) {
+				port = 80;
+			}
+			else if(scheme.equalsIgnoreCase("https")) {
+				port = 443;
+			}
+			else {
+				throw new URISyntaxException(uri, "Invalid protocol.");
+			}
+		}
+	    
+		return new URI(scheme, temp.getUserInfo(), temp.getHost(), port, temp.getPath(), temp.getQuery(), temp.getFragment());
+	}
+	
 	public String host() {
 		return this.headers().get(HttpHeaders.Names.HOST);
 	}
