@@ -19,8 +19,6 @@ import io.netty.util.CharsetUtil;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
