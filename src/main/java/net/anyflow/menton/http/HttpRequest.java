@@ -117,7 +117,8 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		if(getMethod().equals(HttpMethod.GET)) {
 			queryString = getUri();
 		}
-		else if(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED.equals(headers().get(HttpHeaders.Names.CONTENT_TYPE))
+		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE) &&
+				headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
 				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
 			String dummy = "/dummy?";
 			queryString = dummy + content().toString(CharsetUtil.UTF_8);
@@ -267,7 +268,8 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		if(getMethod() == HttpMethod.GET) {
 			address += "?" + convertParametersToString();
 		}
-		else if(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED.equals(headers().get(HttpHeaders.Names.CONTENT_TYPE))
+		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE) &&
+				headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
 				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
 
 			ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), CharsetUtil.UTF_8);

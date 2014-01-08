@@ -54,4 +54,15 @@ public class UtilityTest {
 
 		assertThat(client.httpRequest().uri().getPort(), is(80));
 	}
+	
+	@Test
+	public void testContentTypeWwwFormUrlEncodedWithUtf8() throws Exception {
+
+		String uriString = "http://10.0.0.1/getporttest";
+		HttpClient client = new HttpClient(uriString);
+		
+		
+
+		assertThat(client.httpRequest().uri().getPort(), is(80));
+	}
 }
