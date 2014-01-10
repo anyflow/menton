@@ -7,6 +7,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -30,10 +31,13 @@ public class HttpClient {
 
 	static final Logger logger = LoggerFactory.getLogger(HttpClient.class);
 
+	final Bootstrap bootstrap;
 	private final HttpRequest httpRequest;
-
+	
 	public HttpClient(String uri) throws URISyntaxException, UnsupportedOperationException {
-
+		
+		bootstrap = new Bootstrap();
+		
 		httpRequest = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri));
 
 		if(httpRequest().uri().getScheme().equalsIgnoreCase("http") == false) {
@@ -46,7 +50,7 @@ public class HttpClient {
 	public HttpRequest httpRequest() {
 		return httpRequest;
 	}
-
+	
 	public HttpResponse get() {
 		return get(null);
 	}
@@ -95,6 +99,12 @@ public class HttpClient {
 		return request(receiver);
 	}
 
+	public <T> HttpClient setOption(ChannelOption<T> option, T value) {
+		bootstrap.option(option, value);
+		
+		return this;
+	}
+	
 	/**
 	 * request.
 	 * 
@@ -105,8 +115,6 @@ public class HttpClient {
 	private HttpResponse request(final MessageReceiver receiver) throws IllegalArgumentException {
 
 		boolean ssl = false;
-
-		final EventLoopGroup group = new NioEventLoopGroup(1, new DefaultThreadFactory("client"));
 
 		httpRequest().normalize();
 		setHeaders();
@@ -123,9 +131,9 @@ public class HttpClient {
 
 		HttpClientHandler clientHandler = new HttpClientHandler(receiver, httpRequest);
 
-		Bootstrap bootstrap = new Bootstrap();
+		final EventLoopGroup group = new NioEventLoopGroup(1, new DefaultThreadFactory("client"));
 		bootstrap.group(group).channel(NioSocketChannel.class).handler(new ClientChannelInitializer(clientHandler, ssl));
-
+		
 		try {
 			Channel channel = bootstrap.connect(httpRequest().uri().getHost(), httpRequest().uri().getPort()).sync().channel();
 			channel.writeAndFlush(httpRequest);
