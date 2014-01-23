@@ -117,7 +117,7 @@ public class HttpClient {
 		boolean ssl = false;
 
 		httpRequest().normalize();
-		setHeaders();
+		setDefaultHeaders();
 
 		if(logger.isDebugEnabled()) {
 			logger.debug("[request] URI : {}", httpRequest().getUri());
@@ -165,7 +165,7 @@ public class HttpClient {
 		}
 	}
 
-	private void setHeaders() {
+	private void setDefaultHeaders() {
 
 		if(httpRequest().headers().contains(HttpHeaders.Names.HOST) == false) {
 			httpRequest().headers().set(HttpHeaders.Names.HOST, httpRequest().uri().getHost());

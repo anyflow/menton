@@ -50,11 +50,10 @@ public class HttpServer implements TaskCompletionInformer {
 		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory("server/worker"));
 		
 		try {
-			ServerBootstrap bootstrap = new ServerBootstrap();
-
 			ServerChannelInitializer serverChannelInitializer = requestHandlerClass != null ? new ServerChannelInitializer(requestHandlerClass)
 					: new ServerChannelInitializer(requestHandlerPackageRoot);
 
+			ServerBootstrap bootstrap = new ServerBootstrap();
 			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(serverChannelInitializer);
 			bootstrap.bind(port).sync();
 
