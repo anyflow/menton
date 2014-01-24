@@ -85,11 +85,11 @@
 					<outputFile>${version.file}</outputFile>
 					<replacements>
 						<replacement>
-							<token>@{project.artifactId}</token>
+							<token>@project.artifactId@</token>
 							<value>${project.artifactId}</value>
 						</replacement>
 						<replacement>
-							<token>@{project.version}</token>
+							<token>@project.version@</token>
 							<value>${project.version}</value>
 						</replacement>
 					</replacements>
