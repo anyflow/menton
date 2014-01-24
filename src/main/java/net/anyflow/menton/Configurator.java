@@ -5,7 +5,9 @@ package net.anyflow.menton;
 
 import io.netty.handler.logging.LogLevel;
 
+import java.io.InputStream;
 import java.io.Reader;
+import java.util.Properties;
 
 /**
  * @author anyflow
@@ -19,7 +21,7 @@ public class Configurator extends java.util.Properties {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Configurator.class);
 	private static Configurator instance;
-
+	
 	public static Configurator instance() {
 		if(instance == null) {
 			instance = new Configurator();
@@ -47,23 +49,44 @@ public class Configurator extends java.util.Properties {
 	 * @param propertyInputStream
 	 *            Menton's properties InputStream
 	 */
-	public void initialize(java.io.InputStream propertyInputStream) {
-		try {
-			load(propertyInputStream);
-		}
-		catch(java.io.IOException e) {
-			logger.error("Loading network properties failed.", e);
-		}
+	public void initialize(java.io.InputStream propertyInputStream) {		
+		initialize(null, propertyInputStream);
 	}
 
-	public void initialize(Reader propertyReader) {
+	private void initialize(Reader propertyReader, InputStream propertyInputStream) {
 
 		try {
-			load(propertyReader);
+			if(propertyReader != null) {
+				load(propertyReader);
+			}
+			else if(propertyInputStream != null) {
+				load(propertyInputStream);
+			}
 		}
 		catch(java.io.IOException e) {
 			logger.error("Loading network properties failed.", e);
 		}
+		
+		Properties prop = new Properties();
+
+		try {
+			String filePath = "META-INF/maven/net.anyflow/menton/pom.properties";
+			InputStream in = getClass().getClassLoader().getResourceAsStream(filePath);
+			
+			prop.load(in);
+			in.close();
+		}
+		catch(Exception e) {
+			logger.error("Failed to read pom.properties.", e);
+		}
+		
+		for(Object key : prop.keySet()) {
+			this.put(key, prop.values());
+		}
+	}
+	
+	public void initialize(Reader propertyReader) {
+		initialize(propertyReader, null);
 	}
 
 	public void setRequestHandlerPackageRoot(String requestHandlerPackageRoot) {
@@ -82,13 +105,6 @@ public class Configurator extends java.util.Properties {
 	 */
 	public int getHttpPort() {
 		return Integer.parseInt(getProperty("menton.httpServer.port", "8090"));
-	}
-
-	/**
-	 * @return avro port
-	 */
-	public int getAvroPort() {
-		return Integer.parseInt(getProperty("menton.avroServer.port", "9090"));
 	}
 
 	/**

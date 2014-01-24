@@ -18,6 +18,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import net.anyflow.menton.Configurator;
+import net.anyflow.menton.Environment;
 
 /**
  * @author anyflow
@@ -81,10 +82,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			logger.error("Failed to access business logic handler.", e);
 		}
-		catch(InvocationTargetException e) {
-			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
-		}
 		catch(IllegalArgumentException e) {
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			logger.error("Failed to access business logic handler.", e);
@@ -92,11 +89,28 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		catch(SecurityException e) {
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			logger.error("Failed to access business logic handler.", e);
+		}		
+		catch(InvocationTargetException e) {
+			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
 		}
 		catch(Exception e) {
 			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
 		}
+
+		setDefaultHeaders(response);
+
+		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpResponse"))) {
+			logger.info(response.toString());
+		}
+
+		ctx.write(response);
+	}
+
+	private void setDefaultHeaders(HttpResponse response) {
+
+		response.headers().add(Names.SERVER, Environment.PROJECT_ARTIFACT_ID + " " + Environment.PROJECT_VERSION);
 
 		boolean keepAlive = request.headers().get(HttpHeaders.Names.CONNECTION) == HttpHeaders.Values.KEEP_ALIVE;
 		if(keepAlive) {
@@ -111,12 +125,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		}
 
 		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
-
-		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpResponse"))) {
-			logger.info(response.toString());
-		}
-
-		ctx.write(response);
 	}
 
 	private String handleClassTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws InstantiationException,

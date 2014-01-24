@@ -84,22 +84,22 @@ public class HttpResponse extends DefaultFullHttpResponse {
 	public String toString() {
 		StringBuilder buf = new StringBuilder();
 		
-		buf.append("\r\n////////////////////// start of HttpResponse").append("\r\n");
-		buf.append("STATUS : " + this.getStatus()).append("\r\n");
-		buf.append("VERSION : " + this.getProtocolVersion()).append("\r\n");
+		buf.append("\r\n\r\n");
+		buf.append("HTTP Status: " + this.getStatus()).append("\r\n");
+		buf.append("Version: " + this.getProtocolVersion()).append("\r\n");
+		buf.append("Response Headers: ").append("\r\n");
 
 		if(!this.headers().isEmpty()) {
 			for(String name : this.headers().names()) {
 				for(String value : this.headers().getAll(name)) {
-					buf.append("HEADER : " + name + " = " + value).append("\r\n");
+					buf.append("   ").append(name).append(" = ").append(value).append("\r\n");
 				}
 			}
 		}
 
 		String content = this.content().toString(CharsetUtil.UTF_8);
 		int index = content.length() < 100 ? content.length() : 99;
-		buf.append("THE FIRST 100 characters OF CONTENT : " + content.substring(0, index)).append("\r\n");
-		buf.append("////////////////////// end of HttpResponse").append("\r\n");
+		buf.append("The first 100 characters of response content:\r\n   ").append(content.substring(0, index)).append("\r\n");
 		
 		return buf.toString();
 	}

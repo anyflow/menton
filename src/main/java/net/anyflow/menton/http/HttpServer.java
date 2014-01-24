@@ -1,13 +1,14 @@
 package net.anyflow.menton.http;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.concurrent.DefaultThreadFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.general.TaskCompletionInformer;
 import net.anyflow.menton.general.TaskCompletionListener;
@@ -54,6 +55,7 @@ public class HttpServer implements TaskCompletionInformer {
 					: new ServerChannelInitializer(requestHandlerPackageRoot);
 
 			ServerBootstrap bootstrap = new ServerBootstrap();
+
 			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(serverChannelInitializer);
 			bootstrap.bind(port).sync();
 

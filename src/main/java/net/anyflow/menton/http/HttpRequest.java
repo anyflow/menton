@@ -179,31 +179,32 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		StringBuilder buf = new StringBuilder();
 
-		buf.setLength(0);
-		buf.append("VERSION: ").append(this.getProtocolVersion()).append("\r\n");
-		buf.append("HOSTNAME: ").append(HttpHeaders.getHost(this, "unknown")).append("\r\n");
-		buf.append("REQUEST_URI: ").append(this.getUri()).append("\r\n\r\n");
+		buf.append("\r\n\r\n");
+		buf.append("Version: ").append(this.getProtocolVersion()).append("\r\n");
+		buf.append("Request URI: ").append(this.getUri()).append("\r\n");
+		buf.append("Request Headers:").append("\r\n");
 
 		List<Entry<String, String>> headers = this.headers().entries();
 		if(!headers.isEmpty()) {
 			for(Entry<String, String> h : this.headers().entries()) {
 				String key = h.getKey();
 				String value = h.getValue();
-				buf.append("HEADER: ").append(key).append(" = ").append(value).append("\r\n");
+				buf.append("   ").append(key).append(" = ").append(value).append("\r\n");
 			}
-			buf.append("\r\n");
 		}
 
 		Map<String, List<String>> params = parameters();
+		
+		buf.append("Query String Parameters:").append("\r\n");
+		
 		if(!params.isEmpty()) {
 			for(Entry<String, List<String>> p : params.entrySet()) {
 				String key = p.getKey();
 				List<String> vals = p.getValue();
 				for(String val : vals) {
-					buf.append("PARAM: ").append(key).append(" = ").append(val).append("\r\n");
+					buf.append("   ").append(key).append(" = ").append(val).append("\r\n");
 				}
 			}
-			buf.append("\r\n");
 		}
 
 		DecoderResult result = this.getDecoderResult();
