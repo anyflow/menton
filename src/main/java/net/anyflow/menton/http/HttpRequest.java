@@ -182,6 +182,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		buf.append("\r\n\r\n");
 		buf.append("Version: ").append(this.getProtocolVersion()).append("\r\n");
 		buf.append("Request URI: ").append(this.getUri()).append("\r\n");
+		buf.append("HTTP METHOD: ").append(this.getMethod().toString()).append("\r\n");
 		buf.append("Request Headers:").append("\r\n");
 
 		List<Entry<String, String>> headers = this.headers().entries();
