@@ -12,10 +12,12 @@ import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.Environment;
@@ -26,7 +28,9 @@ import net.anyflow.menton.Environment;
 public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpServerHandler.class);
-
+	
+	private static final String FAILED_TO_FIND_REQUEST_HANDLER = "Failed to find the request handler.";
+	
 	private HttpRequest request;
 	private String requestHandlerPackageRoot;
 	private Class<? extends RequestHandler> requestHandlerClass;
@@ -128,7 +132,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	}
 
 	private String handleClassTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws InstantiationException,
-			IllegalAccessException {
+			IllegalAccessException, IOException {
 
 		Class<? extends RequestHandler> handlerClass = RequestHandler.find(requestedPath, request.getMethod().toString(),
 				this.requestHandlerPackageRoot);
@@ -137,7 +141,14 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
 			logger.info("unexcepted URI : {}", request.getUri().toString());
 
-			return "Failed to find the request handler.";
+			response.headers().add(Names.CONTENT_TYPE, "text/html");
+			
+			HashMap<String, String> values = new HashMap<String, String>();
+			values.put("PROJECT_ARTIFACT_ID", Environment.PROJECT_ARTIFACT_ID);
+			values.put("PROJECT_VERSION", Environment.PROJECT_VERSION);
+			values.put("message", FAILED_TO_FIND_REQUEST_HANDLER);
+			
+			return HtmlGenerator.generate(values, "html/404notfound.htm");
 		}
 		else {
 			RequestHandler handler = handlerClass.newInstance();
@@ -149,7 +160,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	}
 
 	private String handleMethodTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws IllegalAccessException,
-			InvocationTargetException, IllegalArgumentException, SecurityException, InstantiationException {
+			InvocationTargetException, IllegalArgumentException, SecurityException, InstantiationException, IOException {
 
 		RequestHandler requestHandler = (RequestHandler)requestHandlerClass.getConstructors()[0].newInstance();
 
@@ -160,7 +171,14 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
 			logger.info("unexcepted URI : {}", request.getUri().toString());
 
-			return "Failed to find the request handler.";
+			response.headers().add(Names.CONTENT_TYPE, "text/html");
+			
+			HashMap<String, String> values = new HashMap<String, String>();
+			values.put("PROJECT_ARTIFACT_ID", Environment.PROJECT_ARTIFACT_ID);
+			values.put("PROJECT_VERSION", Environment.PROJECT_VERSION);
+			values.put("message", FAILED_TO_FIND_REQUEST_HANDLER);
+			
+			return HtmlGenerator.generate(values, "html/404notfound.htm");
 		}
 		else {
 			return handler.invoke(requestHandler, (Object[])null).toString();
