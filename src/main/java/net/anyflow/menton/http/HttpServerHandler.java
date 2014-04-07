@@ -143,12 +143,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 			response.headers().add(Names.CONTENT_TYPE, "text/html");
 			
-			HashMap<String, String> values = new HashMap<String, String>();
-			values.put("PROJECT_ARTIFACT_ID", Environment.PROJECT_ARTIFACT_ID);
-			values.put("PROJECT_VERSION", Environment.PROJECT_VERSION);
-			values.put("message", FAILED_TO_FIND_REQUEST_HANDLER);
-			
-			return HtmlGenerator.generate(values, "html/404notfound.htm");
+			return HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus());
 		}
 		else {
 			RequestHandler handler = handlerClass.newInstance();
@@ -170,15 +165,10 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		if(handler == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
 			logger.info("unexcepted URI : {}", request.getUri().toString());
-
+			
 			response.headers().add(Names.CONTENT_TYPE, "text/html");
 			
-			HashMap<String, String> values = new HashMap<String, String>();
-			values.put("PROJECT_ARTIFACT_ID", Environment.PROJECT_ARTIFACT_ID);
-			values.put("PROJECT_VERSION", Environment.PROJECT_VERSION);
-			values.put("message", FAILED_TO_FIND_REQUEST_HANDLER);
-			
-			return HtmlGenerator.generate(values, "html/404notfound.htm");
+			return HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus());
 		}
 		else {
 			return handler.invoke(requestHandler, (Object[])null).toString();
