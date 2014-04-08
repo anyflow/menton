@@ -1,7 +1,7 @@
 Menton
 =============
 
-Netty based Http / Avro facade
+Netty based HTTP facade
 
 
 menton option list
