@@ -18,17 +18,27 @@ public class HtmlGenerator {
 
 	static final Logger logger = LoggerFactory.getLogger(HtmlGenerator.class);
 
+	static String html_error;
+	
+	static {
+		html_error = tidy(Thread.currentThread().getContextClassLoader().getResourceAsStream("html/error.htm"));
+	}
+	
 	public static String generate(Map<String, String> values, String htmlPath) throws IOException {
 
-		String ret = tidy(Thread.currentThread().getContextClassLoader().getResourceAsStream(htmlPath));
+		return replace(values, tidy(Thread.currentThread().getContextClassLoader().getResourceAsStream("html/error.htm")));
+	}
 
-		String open_marker = "${";
-		String close_marker = "}";
+	private static String replace(Map<String, String> values, String htmlTemplate) {
+
+		String openMarker = "${";
+		String closeMarker = "}";
+		
 		for(String key : values.keySet()) {
-			ret = ret.replace(open_marker + key + close_marker, values.get(key));
+			htmlTemplate = htmlTemplate.replace(openMarker + key + closeMarker, values.get(key));
 		}
 
-		return ret;
+		return htmlTemplate;
 	}
 
 	public static String error(String message, HttpResponseStatus status) {
@@ -40,13 +50,7 @@ public class HtmlGenerator {
 		values.put("PROJECT_VERSION", Environment.PROJECT_VERSION);
 		values.put("message", message);
 
-		try {
-			return HtmlGenerator.generate(values, "html/error.htm");
-		}
-		catch(IOException e) {
-			logger.error(e.getMessage(), e);
-			return null;
-		}
+		return replace(values, html_error);
 	}
 	
 	private static String tidy(InputStream is) {
