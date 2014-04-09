@@ -12,12 +12,15 @@ import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.Map;
 
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.Environment;
@@ -28,9 +31,22 @@ import net.anyflow.menton.Environment;
 public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpServerHandler.class);
-	
+
 	private static final String FAILED_TO_FIND_REQUEST_HANDLER = "Failed to find the request handler.";
-	
+
+	private static final Map<String, String> FILE_REQUEST_EXTENSIONS;
+
+	static {
+		FILE_REQUEST_EXTENSIONS = new HashMap<String, String>();
+
+		FILE_REQUEST_EXTENSIONS.put("css", "text/css");
+		FILE_REQUEST_EXTENSIONS.put("js", "text/javascript");
+		FILE_REQUEST_EXTENSIONS.put("gif", "image/gif");
+		FILE_REQUEST_EXTENSIONS.put("png", "image/png");
+		FILE_REQUEST_EXTENSIONS.put("jpg", "text/jpg");
+		FILE_REQUEST_EXTENSIONS.put("bmp", "text/bmp");
+	}
+
 	private HttpRequest request;
 	private String requestHandlerPackageRoot;
 	private Class<? extends RequestHandler> requestHandlerClass;
@@ -44,6 +60,36 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	 */
 	public HttpServerHandler(Class<? extends RequestHandler> requestHandlerClass) {
 		this.requestHandlerClass = requestHandlerClass;
+	}
+
+	private String getExtension(String filePath) {
+
+		String[] tokens = filePath.split("\\.");
+		if(tokens.length <= 0) { return null; }
+
+		return tokens[tokens.length - 1];
+	}
+
+	private String getFileRequestPath(String uri) {
+
+		String path;
+
+		try {
+			path = new URI(request.getUri()).getPath();
+		}
+		catch(URISyntaxException e) {
+			return null;
+		}
+
+		for(String ext : FILE_REQUEST_EXTENSIONS.keySet()) {
+			if(path.endsWith("." + ext) == false) {
+				continue;
+			}
+
+			return path;
+		}
+
+		return null;
 	}
 
 	/*
@@ -66,41 +112,68 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 
 		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(), request.headers().get(HttpHeaders.Names.COOKIE));
 
-		try {
-			String path = (new URI(request.getUri())).getPath();
+		String fileRequestPath = getFileRequestPath(request.getUri());
 
-			String content = requestHandlerClass != null ? handleMethodTypeHandler(request, response, path) : handleClassTypeHandler(request,
-					response, path);
+		if(fileRequestPath != null) {
+			InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileRequestPath);
 
-			response.setContent(content);
+			if(is == null) {
+				response.setStatus(HttpResponseStatus.NOT_FOUND);
+			}
+			else {
+				ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+				int nRead;
+				byte[] data = new byte[16384];
+
+				while((nRead = is.read(data, 0, data.length)) != -1) {
+					buffer.write(data, 0, nRead);
+				}
+
+				buffer.flush();
+				response.content().writeBytes(buffer.toByteArray());
+
+				String ext = getExtension(fileRequestPath);
+				response.headers().set(Names.CONTENT_TYPE, FILE_REQUEST_EXTENSIONS.get(ext));
+			}
 		}
-		catch(URISyntaxException e) {
-			response.setStatus(HttpResponseStatus.NOT_FOUND);
-			logger.info("unexcepted URI : {}", request.getUri().toString());
-		}
-		catch(InstantiationException e) {
-			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Generating new request handler instance failed.", e);
-		}
-		catch(IllegalAccessException e) {
-			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Failed to access business logic handler.", e);
-		}
-		catch(IllegalArgumentException e) {
-			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Failed to access business logic handler.", e);
-		}
-		catch(SecurityException e) {
-			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Failed to access business logic handler.", e);
-		}		
-		catch(InvocationTargetException e) {
-			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
-		}
-		catch(Exception e) {
-			response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
+		else {
+			try {
+				String path = (new URI(request.getUri())).getPath();
+
+				String content = requestHandlerClass != null ? handleMethodTypeHandler(request, response, path) : handleClassTypeHandler(request,
+						response, path);
+
+				response.setContent(content);
+			}
+			catch(URISyntaxException e) {
+				response.setStatus(HttpResponseStatus.NOT_FOUND);
+				logger.info("unexcepted URI : {}", request.getUri().toString());
+			}
+			catch(InstantiationException e) {
+				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+				logger.error("Generating new request handler instance failed.", e);
+			}
+			catch(IllegalAccessException e) {
+				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+				logger.error("Failed to access business logic handler.", e);
+			}
+			catch(IllegalArgumentException e) {
+				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+				logger.error("Failed to access business logic handler.", e);
+			}
+			catch(SecurityException e) {
+				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+				logger.error("Failed to access business logic handler.", e);
+			}
+			catch(InvocationTargetException e) {
+				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+				logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
+			}
+			catch(Exception e) {
+				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+				logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
+			}
 		}
 
 		setDefaultHeaders(response);
@@ -142,16 +215,15 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			logger.info("unexcepted URI : {}", request.getUri().toString());
 
 			response.headers().add(Names.CONTENT_TYPE, "text/html");
-			
+
 			return HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus());
 		}
-		else {
-			RequestHandler handler = handlerClass.newInstance();
 
-			handler.initialize(request, response);
+		RequestHandler handler = handlerClass.newInstance();
 
-			return handler.call();
-		}
+		handler.initialize(request, response);
+
+		return handler.call();
 	}
 
 	private String handleMethodTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws IllegalAccessException,
@@ -165,14 +237,13 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		if(handler == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
 			logger.info("unexcepted URI : {}", request.getUri().toString());
-			
+
 			response.headers().add(Names.CONTENT_TYPE, "text/html");
-			
+
 			return HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus());
 		}
-		else {
-			return handler.invoke(requestHandler, (Object[])null).toString();
-		}
+
+		return handler.invoke(requestHandler, (Object[])null).toString();
 	}
 
 	@Override

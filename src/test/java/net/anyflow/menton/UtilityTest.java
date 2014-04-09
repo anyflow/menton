@@ -65,4 +65,13 @@ public class UtilityTest {
 
 		assertThat(client.httpRequest().uri().getPort(), is(80));
 	}
+	
+	@Test
+	public void StringSplitTest() throws Exception {
+		
+		String testString = "img/404-not-found.png";
+		
+		String[] tokens = testString.split("\\.");
+		assertThat(tokens[1], is("png"));
+	}
 }
