@@ -48,12 +48,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	}
 
 	private HttpRequest request;
-	private String requestHandlerPackageRoot;
 	private Class<? extends RequestHandler> requestHandlerClass;
 
-	public HttpServerHandler(String requestHandlerPackageRoot) {
-		this.requestHandlerPackageRoot = requestHandlerPackageRoot;
-	}
+	public HttpServerHandler() { }
 
 	/**
 	 * @param requestHandlerClass
@@ -207,8 +204,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	private String handleClassTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws InstantiationException,
 			IllegalAccessException, IOException {
 
-		Class<? extends RequestHandler> handlerClass = RequestHandler.find(requestedPath, request.getMethod().toString(),
-				this.requestHandlerPackageRoot);
+		Class<? extends RequestHandler> handlerClass = RequestHandler.findClass(requestedPath, request.getMethod().toString());
 
 		if(handlerClass == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
@@ -232,7 +228,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		RequestHandler requestHandler = (RequestHandler)requestHandlerClass.getConstructors()[0].newInstance();
 
 		requestHandler.initialize(request, response);
-		Method handler = requestHandler.find(requestedPath, request.getMethod().toString());
+		Method handler = requestHandler.findMethod(requestedPath, request.getMethod().toString());
 
 		if(handler == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);

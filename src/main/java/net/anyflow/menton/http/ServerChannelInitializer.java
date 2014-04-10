@@ -16,14 +16,12 @@ import net.anyflow.menton.Configurator;
  */
 public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-	private String requestHandlerPackageRoot;
 	private Class<? extends RequestHandler> requestHandlerClass;
 
 	/**
 	 * @param clientHandler
 	 */
-	public ServerChannelInitializer(String requestHandlerPackageRoot) {
-		this.requestHandlerPackageRoot = requestHandlerPackageRoot;
+	public ServerChannelInitializer() {
 	}
 
 	/**
@@ -41,7 +39,7 @@ public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> 
 		// Otherwise, outbound handlers will not be handled.
 
 		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writelogOfNettyLogger"))) {
-			ch.pipeline().addLast("log", new LoggingHandler("menton/server", Configurator.instance().getLogLevel()));
+			ch.pipeline().addLast("log", new LoggingHandler("menton/server", Configurator.instance().logLevel()));
 		}
 
 		ch.pipeline().addLast("decoder", new HttpRequestDecoder());
@@ -49,6 +47,6 @@ public class ServerChannelInitializer extends ChannelInitializer<SocketChannel> 
 		ch.pipeline().addLast("encoder", new HttpResponseEncoder());
 		ch.pipeline().addLast("deflater", new HttpContentCompressor()); // Automatic content compression.
 		ch.pipeline().addLast("bizHandler",
-				requestHandlerClass != null ? new HttpServerHandler(requestHandlerClass) : new HttpServerHandler(requestHandlerPackageRoot));
+				requestHandlerClass != null ? new HttpServerHandler(requestHandlerClass) : new HttpServerHandler());
 	}
 }

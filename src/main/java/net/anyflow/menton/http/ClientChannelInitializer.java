@@ -33,7 +33,7 @@ public class ClientChannelInitializer extends ChannelInitializer<SocketChannel> 
 
 		ChannelPipeline p = ch.pipeline();
 
-		p.addLast("log", new LoggingHandler("menton/client", Configurator.instance().getLogLevel()));
+		p.addLast("log", new LoggingHandler("menton/client", Configurator.instance().logLevel()));
 
 		if(ssl) {
 			// TODO

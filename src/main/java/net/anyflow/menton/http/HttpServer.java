@@ -25,17 +25,17 @@ public class HttpServer implements TaskCompletionInformer {
 	private EventLoopGroup bossGroup;
 	private EventLoopGroup workerGroup;
 	private List<TaskCompletionListener> taskCompletionListeners;
-	
+
 	public HttpServer() {
 		taskCompletionListeners = new ArrayList<TaskCompletionListener>();
 	}
 
 	public void start(String requestHandlerPackageRoot) {
-		start(requestHandlerPackageRoot, null, Configurator.instance().getHttpPort());
+		start(requestHandlerPackageRoot, null, Configurator.instance().httpPort());
 	}
 
 	public void start(Class<? extends RequestHandler> requestHandlerClass) {
-		start(null, requestHandlerClass, Configurator.instance().getHttpPort());
+		start(null, requestHandlerClass, Configurator.instance().httpPort());
 	}
 
 	public void start(String requestHandlerPackageRoot, int port) {
@@ -48,11 +48,14 @@ public class HttpServer implements TaskCompletionInformer {
 
 	private void start(String requestHandlerPackageRoot, Class<? extends RequestHandler> requestHandlerClass, int port) {
 		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0), new DefaultThreadFactory("server/boss"));
-		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory("server/worker"));
-		
+		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory(
+				"server/worker"));
+
+		Configurator.instance().setRequestHandlerPackageRoot(requestHandlerPackageRoot);
+
 		try {
 			ServerChannelInitializer serverChannelInitializer = requestHandlerClass != null ? new ServerChannelInitializer(requestHandlerClass)
-					: new ServerChannelInitializer(requestHandlerPackageRoot);
+					: new ServerChannelInitializer();
 
 			ServerBootstrap bootstrap = new ServerBootstrap();
 
@@ -82,7 +85,8 @@ public class HttpServer implements TaskCompletionInformer {
 		inform();
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see net.anyflow.menton.general.TaskCompletionInformer#register(net.anyflow.menton.general.TaskCompletionListener)
 	 */
 	@Override
@@ -90,16 +94,18 @@ public class HttpServer implements TaskCompletionInformer {
 		taskCompletionListeners.add(taskCompletionListener);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see net.anyflow.menton.general.TaskCompletionInformer#deregister(net.anyflow.menton.general.TaskCompletionListener)
 	 */
 	@Override
 	public void deregister(TaskCompletionListener taskCompletionListener) {
 		taskCompletionListeners.remove(taskCompletionListener);
-		
+
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see net.anyflow.menton.general.TaskCompletionInformer#inform()
 	 */
 	@Override

@@ -96,21 +96,21 @@ public class Configurator extends java.util.Properties {
 	/**
 	 * @return Request Handler Package root name
 	 */
-	public String getRequestHandlerPackageRoot() {
-		return getProperty("httpServer.requestHandlerPackageRoot", "requestHandler Package key was not found");
+	public String requestHandlerPackageRoot() {
+		return getProperty("httpServer.requestHandlerPackageRoot", null);
 	}
 
 	/**
 	 * @return http port
 	 */
-	public int getHttpPort() {
+	public int httpPort() {
 		return Integer.parseInt(getProperty("menton.httpServer.port", "8090"));
 	}
 
 	/**
 	 * @return context root path
 	 */
-	public String getHttpContextRoot() {
+	public String httpContextRoot() {
 		String ret = getProperty("menton.httpServer.contextRoot", "/");
 
 		if(ret.equalsIgnoreCase("") || ret.charAt(ret.length() - 1) != '/') {
@@ -120,7 +120,7 @@ public class Configurator extends java.util.Properties {
 		return ret;
 	}
 
-	public LogLevel getLogLevel() {
+	public LogLevel logLevel() {
 		if(logger.isTraceEnabled()) {
 			return LogLevel.TRACE;
 		}

@@ -20,6 +20,7 @@ public class RequestHandler {
 
 	private static Map<String, Class<? extends RequestHandler>> handlerClassMap;
 	private static Map<String, Method> handlerMethodMap;
+	private static Set<Class<? extends RequestHandler>> requestHandler;
 
 	private HttpRequest request;
 	private HttpResponse response;
@@ -74,13 +75,13 @@ public class RequestHandler {
 	 * @param httpMethod
 	 * @return
 	 */
-	public java.lang.reflect.Method find(String requestedPath, String httpMethod) {
+	public java.lang.reflect.Method findMethod(String requestedPath, String httpMethod) {
 
 		String findKey = requestedPath + httpMethod;
 
 		if(handlerMethodMap.containsKey(findKey)) { return handlerMethodMap.get(findKey); }
 
-		String contextRoot = Configurator.instance().getHttpContextRoot();
+		String contextRoot = Configurator.instance().httpContextRoot();
 
 		Method[] methods = this.getClass().getMethods();
 
@@ -119,16 +120,15 @@ public class RequestHandler {
 	 * @param requestHandlerPackageRoot
 	 * @return
 	 */
-	public static Class<? extends RequestHandler> find(String requestedPath, String httpMethod, String requestHandlerPackageRoot) {
+	public static Class<? extends RequestHandler> findClass(String requestedPath, String httpMethod) {
 
 		String findKey = requestedPath + httpMethod;
 
 		if(handlerClassMap.containsKey(findKey)) { return handlerClassMap.get(findKey); }
 
-		Reflections reflections = new Reflections(requestHandlerPackageRoot);
-		String contextRoot = Configurator.instance().getHttpContextRoot();
-
-		Set<Class<? extends RequestHandler>> requestHandler = reflections.getSubTypesOf(RequestHandler.class);
+		if(requestHandler == null) {
+			requestHandler = (new Reflections(Configurator.instance().requestHandlerPackageRoot())).getSubTypesOf(RequestHandler.class);
+		}
 
 		for(Class<? extends RequestHandler> item : requestHandler) {
 
@@ -145,7 +145,7 @@ public class RequestHandler {
 
 				for(String rawPath : bl.paths()) {
 
-					String path = (rawPath.charAt(0) == '/') ? rawPath : contextRoot + rawPath;
+					String path = (rawPath.charAt(0) == '/') ? rawPath : Configurator.instance().httpContextRoot() + rawPath;
 
 					if(requestedPath.equalsIgnoreCase(path)) {
 						handlerClassMap.put(findKey, item);
