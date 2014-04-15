@@ -20,7 +20,7 @@ public class RequestHandler {
 
 	private static Map<String, Class<? extends RequestHandler>> handlerClassMap;
 	private static Map<String, Method> handlerMethodMap;
-	private static Set<Class<? extends RequestHandler>> requestHandler;
+	private static Set<Class<? extends RequestHandler>> requestHandlers;
 
 	private HttpRequest request;
 	private HttpResponse response;
@@ -126,11 +126,11 @@ public class RequestHandler {
 
 		if(handlerClassMap.containsKey(findKey)) { return handlerClassMap.get(findKey); }
 
-		if(requestHandler == null) {
-			requestHandler = (new Reflections(Configurator.instance().requestHandlerPackageRoot())).getSubTypesOf(RequestHandler.class);
+		if(requestHandlers == null) {
+			requestHandlers = (new Reflections(Configurator.instance().requestHandlerPackageRoot())).getSubTypesOf(RequestHandler.class);
 		}
 
-		for(Class<? extends RequestHandler> item : requestHandler) {
+		for(Class<? extends RequestHandler> item : requestHandlers) {
 
 			RequestHandler.Handles bl = item.getAnnotation(RequestHandler.Handles.class);
 
