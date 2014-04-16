@@ -127,7 +127,7 @@ public class RequestHandler {
 		if(handlerClassMap.containsKey(findKey)) { return handlerClassMap.get(findKey); }
 
 		if(requestHandlers == null) {
-			requestHandlers = (new Reflections(Configurator.instance().requestHandlerPackageRoot())).getSubTypesOf(RequestHandler.class);
+			requestHandlers = (new Reflections("")).getSubTypesOf(RequestHandler.class);
 		}
 
 		for(Class<? extends RequestHandler> item : requestHandlers) {

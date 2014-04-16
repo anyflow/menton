@@ -30,29 +30,24 @@ public class HttpServer implements TaskCompletionInformer {
 		taskCompletionListeners = new ArrayList<TaskCompletionListener>();
 	}
 
-	public void start(String requestHandlerPackageRoot) {
-		start(requestHandlerPackageRoot, null, Configurator.instance().httpPort());
+	public void start() {
+		start(null, Configurator.instance().httpPort());
 	}
 
 	public void start(Class<? extends RequestHandler> requestHandlerClass) {
-		start(null, requestHandlerClass, Configurator.instance().httpPort());
+		start(requestHandlerClass, Configurator.instance().httpPort());
 	}
 
-	public void start(String requestHandlerPackageRoot, int port) {
-		start(requestHandlerPackageRoot, null, port);
+	public void start(int port) {
+		start(null, port);
 	}
 
-	public void start(Class<? extends RequestHandler> requestHandlerClass, int port) {
-		start(null, requestHandlerClass, port);
-	}
 
-	private void start(String requestHandlerPackageRoot, Class<? extends RequestHandler> requestHandlerClass, int port) {
+	private void start(Class<? extends RequestHandler> requestHandlerClass, int port) {
 		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0), new DefaultThreadFactory("server/boss"));
 		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory(
 				"server/worker"));
-
-		Configurator.instance().setRequestHandlerPackageRoot(requestHandlerPackageRoot);
-
+		
 		try {
 			ServerChannelInitializer serverChannelInitializer = requestHandlerClass != null ? new ServerChannelInitializer(requestHandlerClass)
 					: new ServerChannelInitializer();

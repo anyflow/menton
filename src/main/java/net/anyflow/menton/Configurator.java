@@ -89,17 +89,6 @@ public class Configurator extends java.util.Properties {
 		initialize(propertyReader, null);
 	}
 
-	public void setRequestHandlerPackageRoot(String requestHandlerPackageRoot) {
-		setProperty("httpServer.requestHandlerPackageRoot", requestHandlerPackageRoot);
-	}
-
-	/**
-	 * @return Request Handler Package root name
-	 */
-	public String requestHandlerPackageRoot() {
-		return getProperty("httpServer.requestHandlerPackageRoot", null);
-	}
-
 	/**
 	 * @return http port
 	 */
