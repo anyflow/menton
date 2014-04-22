@@ -7,7 +7,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.general.TaskCompletionInformer;
@@ -25,7 +27,7 @@ public class HttpServer implements TaskCompletionInformer {
 	private EventLoopGroup bossGroup;
 	private EventLoopGroup workerGroup;
 	private List<TaskCompletionListener> taskCompletionListeners;
-
+	
 	public HttpServer() {
 		taskCompletionListeners = new ArrayList<TaskCompletionListener>();
 	}
@@ -42,6 +44,20 @@ public class HttpServer implements TaskCompletionInformer {
 		start(null, port);
 	}
 
+	/**
+	 * Register class type HTTP Request handlers manually. Without it, reflection will register these(only in the module which contains Entrypoint). 
+	 * @param classes class type request handler list.
+	 */
+	@SafeVarargs
+	public void register(Class<? extends RequestHandler>... classes) {
+		Set<Class<? extends RequestHandler>> requestHandlers = new HashSet<Class<? extends RequestHandler>>();
+		
+		for(Class<? extends RequestHandler> item : classes) {
+			requestHandlers.add(item);
+		}
+		
+		RequestHandler.setRequestHandlers(requestHandlers);
+	}
 
 	private void start(Class<? extends RequestHandler> requestHandlerClass, int port) {
 		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0), new DefaultThreadFactory("server/boss"));

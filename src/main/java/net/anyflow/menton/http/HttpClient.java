@@ -15,7 +15,6 @@ import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.io.UnsupportedEncodingException;

@@ -127,7 +127,10 @@ public class RequestHandler {
 		if(handlerClassMap.containsKey(findKey)) { return handlerClassMap.get(findKey); }
 
 		if(requestHandlers == null) {
-			requestHandlers = (new Reflections("")).getSubTypesOf(RequestHandler.class);
+			Reflections rf = new Reflections("");
+			System.out.println(rf.getStore().getStoreMap().toString());
+			
+			requestHandlers = rf.getSubTypesOf(RequestHandler.class);
 		}
 
 		for(Class<? extends RequestHandler> item : requestHandlers) {
@@ -157,5 +160,9 @@ public class RequestHandler {
 
 		handlerClassMap.put(findKey, null);
 		return null;
+	}
+	
+	public static void setRequestHandlers(Set<Class<? extends RequestHandler>> requestHandlers) {
+		RequestHandler.requestHandlers = requestHandlers;
 	}
 }
