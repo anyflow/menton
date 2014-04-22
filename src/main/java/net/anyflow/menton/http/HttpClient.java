@@ -120,13 +120,7 @@ public class HttpClient {
 		setDefaultHeaders();
 
 		if(logger.isDebugEnabled()) {
-			logger.debug("[request] URI : {}", httpRequest().getUri());
-			logger.debug("[request] CONTENT : {}", httpRequest().content().toString(CharsetUtil.UTF_8));
-			logger.debug("[request] HTTPMETHOD : {}", httpRequest().getMethod().toString());
-
-			for(String name : httpRequest.headers().names()) {
-				logger.debug("[request] HEADER : " + name + " = " + httpRequest.headers().get(name));
-			}
+			logger.debug(httpRequest().toString());
 		}
 
 		HttpClientHandler clientHandler = new HttpClientHandler(receiver, httpRequest);
