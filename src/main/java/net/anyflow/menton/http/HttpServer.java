@@ -46,17 +46,17 @@ public class HttpServer implements TaskCompletionInformer {
 
 	/**
 	 * Register class type HTTP Request handlers manually. Without it, reflection will register these(only in the module which contains Entrypoint). 
-	 * @param classes class type request handler list.
+	 * @param requestHandlers class type request handler list.
 	 */
 	@SafeVarargs
-	public void register(Class<? extends RequestHandler>... classes) {
-		Set<Class<? extends RequestHandler>> requestHandlers = new HashSet<Class<? extends RequestHandler>>();
+	public void register(Class<? extends RequestHandler>... requestHandlers) {
+		Set<Class<? extends RequestHandler>> set = new HashSet<Class<? extends RequestHandler>>();
 		
-		for(Class<? extends RequestHandler> item : classes) {
-			requestHandlers.add(item);
+		for(Class<? extends RequestHandler> item : requestHandlers) {
+			set.add(item);
 		}
 		
-		RequestHandler.setRequestHandlers(requestHandlers);
+		RequestHandler.setRequestHandlers(set);
 	}
 
 	private void start(Class<? extends RequestHandler> requestHandlerClass, int port) {
