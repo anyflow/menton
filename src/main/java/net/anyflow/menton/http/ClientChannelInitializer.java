@@ -32,9 +32,11 @@ public class ClientChannelInitializer extends ChannelInitializer<SocketChannel> 
 	protected void initChannel(SocketChannel ch) throws Exception {
 
 		ChannelPipeline p = ch.pipeline();
-
-		p.addLast("log", new LoggingHandler("menton/client", Configurator.instance().logLevel()));
-
+		
+		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writelogOfNettyLogger"))) {
+			p.addLast("log", new LoggingHandler("menton/client", Configurator.instance().logLevel()));
+		}
+		
 		if(ssl) {
 			// TODO
 			// SSL related..
