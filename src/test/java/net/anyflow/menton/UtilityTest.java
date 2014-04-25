@@ -11,8 +11,10 @@ import java.util.Map;
 
 import net.anyflow.menton.http.HttpClient;
 
-import org.junit.After;
-import org.junit.Before;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -26,15 +28,18 @@ public class UtilityTest {
 	/**
 	 * @throws java.lang.Exception
 	 */
-	@Before
-	public void setUp() throws Exception {
+	@BeforeClass
+	public static void setUp() {
+		if(!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
+			BasicConfigurator.configure();
+		}
 	}
 
 	/**
 	 * @throws java.lang.Exception
 	 */
-	@After
-	public void tearDown() throws Exception {
+	@AfterClass
+	public static void tearDown() {
 	}
 
 	@Test
@@ -45,7 +50,7 @@ public class UtilityTest {
 
 		assertThat(parameters, is(not(nullValue())));
 	}
-	
+
 	@Test
 	public void testURIport() throws Exception {
 
@@ -54,23 +59,21 @@ public class UtilityTest {
 
 		assertThat(client.httpRequest().uri().getPort(), is(80));
 	}
-	
+
 	@Test
 	public void testContentTypeWwwFormUrlEncodedWithUtf8() throws Exception {
 
 		String uriString = "http://10.0.0.1/getporttest";
 		HttpClient client = new HttpClient(uriString);
-		
-		
 
 		assertThat(client.httpRequest().uri().getPort(), is(80));
 	}
-	
+
 	@Test
 	public void StringSplitTest() throws Exception {
-		
+
 		String testString = "img/404-not-found.png";
-		
+
 		String[] tokens = testString.split("\\.");
 		assertThat(tokens[1], is("png"));
 	}

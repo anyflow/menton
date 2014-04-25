@@ -67,12 +67,12 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 	private URI createUriWithNormalizing(String uri) throws URISyntaxException {
 		URI temp = new URI(uri);
-		
+
 		String scheme = temp.getScheme();
 		if(scheme == null) {
 			scheme = "http";
 		}
-		
+
 		int port = temp.getPort();
 		if(port == -1) {
 			if(scheme.equalsIgnoreCase("http")) {
@@ -85,10 +85,10 @@ public class HttpRequest extends DefaultFullHttpRequest {
 				throw new URISyntaxException(uri, "Invalid protocol.");
 			}
 		}
-	    
+
 		return new URI(scheme, temp.getUserInfo(), temp.getHost(), port, temp.getPath(), temp.getQuery(), temp.getFragment());
 	}
-	
+
 	/**
 	 * @return
 	 */
@@ -117,8 +117,8 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		if(getMethod().equals(HttpMethod.GET)) {
 			queryString = getUri();
 		}
-		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE) &&
-				headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
+		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE)
+				&& headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
 				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
 			String dummy = "/dummy?";
 			queryString = dummy + content().toString(CharsetUtil.UTF_8);
@@ -137,7 +137,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	 * 
 	 * @param name
 	 *            parameter name.
-	 * @return The first value of the parameter name. If it does not exist, it returns an empty string.
+	 * @return The first value of the parameter name. If it does not exist, it returns null.
 	 */
 	public String parameter(String name) {
 
@@ -195,9 +195,9 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		}
 
 		Map<String, List<String>> params = parameters();
-		
+
 		buf.append("Query String Parameters:").append("\r\n");
-		
+
 		if(!params.isEmpty()) {
 			for(Entry<String, List<String>> p : params.entrySet()) {
 				String key = p.getKey();
@@ -270,8 +270,8 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		if(getMethod() == HttpMethod.GET) {
 			address += "?" + convertParametersToString();
 		}
-		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE) &&
-				headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
+		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE)
+				&& headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
 				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
 
 			ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), CharsetUtil.UTF_8);

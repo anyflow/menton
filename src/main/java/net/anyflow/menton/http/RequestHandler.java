@@ -5,9 +5,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import net.anyflow.menton.Configurator;
 
@@ -20,7 +21,7 @@ public class RequestHandler {
 
 	private static Map<String, Class<? extends RequestHandler>> handlerClassMap;
 	private static Map<String, Method> handlerMethodMap;
-	private static Set<Class<? extends RequestHandler>> requestHandlers;
+	private static List<Class<? extends RequestHandler>> requestHandlerClasses;
 
 	private HttpRequest request;
 	private HttpResponse response;
@@ -126,14 +127,15 @@ public class RequestHandler {
 
 		if(handlerClassMap.containsKey(findKey)) { return handlerClassMap.get(findKey); }
 
-		if(requestHandlers == null) {
+		if(requestHandlerClasses == null) {
 			Reflections rf = new Reflections("");
 			System.out.println(rf.getStore().getStoreMap().toString());
-			
-			requestHandlers = rf.getSubTypesOf(RequestHandler.class);
+
+			requestHandlerClasses = new ArrayList<Class<? extends RequestHandler>>();
+			requestHandlerClasses.addAll(rf.getSubTypesOf(RequestHandler.class));
 		}
 
-		for(Class<? extends RequestHandler> item : requestHandlers) {
+		for(Class<? extends RequestHandler> item : requestHandlerClasses) {
 
 			RequestHandler.Handles bl = item.getAnnotation(RequestHandler.Handles.class);
 
@@ -161,8 +163,8 @@ public class RequestHandler {
 		handlerClassMap.put(findKey, null);
 		return null;
 	}
-	
-	public static void setRequestHandlers(Set<Class<? extends RequestHandler>> requestHandlers) {
-		RequestHandler.requestHandlers = requestHandlers;
+
+	public static void setRequestHandlers(List<Class<? extends RequestHandler>> requestHandlerClasses) {
+		RequestHandler.requestHandlerClasses = requestHandlerClasses;
 	}
 }
