@@ -42,8 +42,8 @@ public class Entrypoint implements TaskCompletionListener {
 
 	private void start() throws FileNotFoundException {
 
-		String log4jFilePath = "/META-INF/log4j.properties";
-		String applicationPropertyFilePath = "/META-INF/application.properties";
+		String log4jFilePath = "META-INF/log4j.properties";
+		String applicationPropertyFilePath = "META-INF/application.properties";
 
 		org.apache.log4j.PropertyConfigurator.configure(getClass().getResourceAsStream(log4jFilePath));
 

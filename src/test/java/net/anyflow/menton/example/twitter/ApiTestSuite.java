@@ -9,7 +9,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({})
+@SuiteClasses({ TweetTest.class })
 public class ApiTestSuite extends TestSuite {
 
 	public static boolean SERVER_ACTIVATED = false;
