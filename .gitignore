@@ -7,6 +7,7 @@
 
 # directories #
 target/
+log/
 
 # eclipse related files #
 .project
