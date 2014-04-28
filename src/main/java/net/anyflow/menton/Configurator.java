@@ -5,9 +5,9 @@ package net.anyflow.menton;
 
 import io.netty.handler.logging.LogLevel;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.util.Properties;
 
 /**
  * @author anyflow
@@ -48,12 +48,13 @@ public class Configurator extends java.util.Properties {
 	 * 
 	 * @param propertyInputStream
 	 *            Menton's properties InputStream
+	 * @throws IOException 
 	 */
-	public void initialize(java.io.InputStream propertyInputStream) {		
+	public void initialize(java.io.InputStream propertyInputStream) throws IOException {		
 		initialize(null, propertyInputStream);
 	}
 
-	private void initialize(Reader propertyReader, InputStream propertyInputStream) {
+	private void initialize(Reader propertyReader, InputStream propertyInputStream) throws IOException {
 
 		try {
 			if(propertyReader != null) {
@@ -65,27 +66,11 @@ public class Configurator extends java.util.Properties {
 		}
 		catch(java.io.IOException e) {
 			logger.error("Loading network properties failed.", e);
-		}
-		
-		Properties prop = new Properties();
-
-		try {
-			String filePath = "META-INF/maven/net.anyflow/menton/pom.properties";
-			InputStream in = getClass().getClassLoader().getResourceAsStream(filePath);
-			
-			prop.load(in);
-			in.close();
-		}
-		catch(Exception e) {
-			logger.error("Failed to read pom.properties.", e);
-		}
-		
-		for(Object key : prop.keySet()) {
-			this.put(key, prop.values());
+			throw e;
 		}
 	}
 	
-	public void initialize(Reader propertyReader) {
+	public void initialize(Reader propertyReader) throws IOException {
 		initialize(propertyReader, null);
 	}
 
