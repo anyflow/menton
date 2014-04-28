@@ -12,6 +12,8 @@ import net.anyflow.menton.http.RequestHandler;
 @RequestHandler.Handles(paths = { "twitter/tweet" }, httpMethods = { "GET" })
 public class Tweet_Get extends RequestHandler {
 
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Tweet_Get.class);
+	
 	@Override
 	public String call() {
 		String id = httpRequest().parameter("id");
@@ -22,6 +24,8 @@ public class Tweet_Get extends RequestHandler {
 
 		Tweet tweet = Database.instance().get(id);
 		if(tweet == null) {
+			logger.error("id parameter required.");
+			
 			httpResponse().setStatus(HttpResponseStatus.FORBIDDEN);
 			return MessageGenerator.generateJson(new Error("Invalid id"), httpResponse());
 		}

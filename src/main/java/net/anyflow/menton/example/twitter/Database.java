@@ -33,15 +33,15 @@ public class Database {
 	public String insert(Tweet tweet) {
 		tweet.setId(UUID.randomUUID().toString());
 
-		store.put(tweet.id(), tweet);
+		store.put(tweet.getId(), tweet);
 
-		return tweet.id();
+		return tweet.getId();
 	}
 
 	public Tweet update(Tweet tweet) {
-		Tweet ret = store.remove(tweet.id());
+		Tweet ret = store.remove(tweet.getId());
 
-		store.put(tweet.id(), tweet);
+		store.put(tweet.getId(), tweet);
 
 		return ret;
 	}

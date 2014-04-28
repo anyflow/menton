@@ -37,7 +37,7 @@ public class Tweet_Put extends RequestHandler {
 		try {
 			JSONObject json = new JSONObject();
 
-			json.put("tweet_id", id);
+			json.put("id", id);
 			return json.toString();
 		}
 		catch(JSONException e) {

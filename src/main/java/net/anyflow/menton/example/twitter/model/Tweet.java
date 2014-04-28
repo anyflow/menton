@@ -13,7 +13,7 @@ public class Tweet {
 	/**
 	 * @return the id
 	 */
-	public String id() {
+	public String getId() {
 		return id;
 	}
 
@@ -28,7 +28,7 @@ public class Tweet {
 	/**
 	 * @return the message
 	 */
-	public String message() {
+	public String getMessage() {
 		return message;
 	}
 

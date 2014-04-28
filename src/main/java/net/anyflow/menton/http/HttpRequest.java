@@ -114,7 +114,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		String queryString = null;
 
-		if(getMethod().equals(HttpMethod.GET)) {
+		if(HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
 			queryString = getUri();
 		}
 		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE)
@@ -267,7 +267,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		String address = (new StringBuilder()).append(uri().getScheme()).append("://").append(uri().getAuthority()).append(uri().getPath())
 				.toString();
 
-		if(getMethod() == HttpMethod.GET) {
+		if(HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
 			address += "?" + convertParametersToString();
 		}
 		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE)

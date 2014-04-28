@@ -32,6 +32,6 @@ public class Tweet_Post extends RequestHandler {
 		tweet.setMessage(message);
 		Database.instance().update(tweet);
 
-		return null;
+		return MessageGenerator.generateJson(tweet, httpResponse());
 	}
 }
