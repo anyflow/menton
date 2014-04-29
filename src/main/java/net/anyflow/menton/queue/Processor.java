@@ -29,12 +29,4 @@ public interface Processor<Item> {
 	 * @return processing timeout in millisecond
 	 */
 	int prcessingTimeout();
-
-	/**
-	 * The event handler called in the worker thread when processing completed.
-	 * 
-	 * @param items
-	 *            items which are completed.
-	 */
-	void processingCompleted(List<Item> items);
 }

@@ -169,7 +169,6 @@ public class PumpingQueue<Item> {
 						@Override
 						public void run() {
 							processor.process(targets);
-							processor.processingCompleted(targets);
 						}
 					});
 

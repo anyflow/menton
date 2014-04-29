@@ -18,7 +18,7 @@ import net.anyflow.menton.general.TaskCompletionListener;
  * <ul>
  * <li>The queue supports priority based processing(via {@link java.util.PriorityQueue}).
  * <li>The queue provides thread-safety.
- * <li>The queue provides completion event via {@link net.anyflow.menton.queue.Processor#processingCompleted(List)}.
+ * <li>The queue provides task completion event via {@link net.anyflow.menton.general.TaskCompletionInformer}.
  * </ul>
  * 
  * @author Park Hyunjeong
@@ -216,7 +216,6 @@ public class ProcessingQueue<Item extends Comparable<Item>> implements TaskCompl
 				}
 
 				processor.process(targets);
-				processor.processingCompleted(targets);
 			}
 		}
 	}
