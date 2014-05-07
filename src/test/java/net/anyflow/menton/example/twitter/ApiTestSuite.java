@@ -9,7 +9,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({ TweetTest.class })
+@SuiteClasses({ TweetTest.class, ListTest.class })
 public class ApiTestSuite extends TestSuite {
 
 	private static net.anyflow.menton.example.twitter.Entrypoint server = null;

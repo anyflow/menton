@@ -1,7 +1,6 @@
 package net.anyflow.menton.example.twitter;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.CharsetUtil;
 
@@ -40,18 +39,18 @@ public class ListTest extends ApiTestCase {
 	final static int count = 100;
 	
 	@Test
-	public void test1_PUT() throws UnsupportedOperationException, URISyntaxException {
+	public void test() throws UnsupportedOperationException, URISyntaxException {
 
 		HttpClient client = new HttpClient(address);
 
 		HttpResponse response = client.get();
 
-		assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+		assertTrue(response.getStatus().equals(HttpResponseStatus.OK));
 
 		String content = response.content().toString(CharsetUtil.UTF_8);
 
 		List<Object> list = JsonPath.read(content,  "$.");
 		
-		assertThat(list.size(), is(count));
+		assertTrue(list.size() == count);
 	}
 }
