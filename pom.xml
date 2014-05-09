@@ -16,6 +16,35 @@
 		<version.file>src/main/java/net/anyflow/menton/Environment.java</version.file>
 	</properties>
 
+    <repositories>
+        <repository>
+            <id>nexus</id>
+            <url>http://54.178.1.171:8080/nexus/content/groups/public</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+                <checksumPolicy>warn</checksumPolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+                <checksumPolicy>fail</checksumPolicy>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>releases</id>
+            <name>Releases</name>
+            <url>http://54.178.1.171:8080/nexus/content/repositories/releases/</url>
+        </repository>
+    </distributionManagement>
+
+    <ciManagement>
+        <url>http://54.178.1.171:8080/jenkins</url>
+    </ciManagement>
+    
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
