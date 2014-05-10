@@ -19,7 +19,7 @@
     <repositories>
         <repository>
             <id>nexus</id>
-            <url>http://54.178.1.171:8080/nexus/content/groups/public</url>
+            <url>http://54.248.237.2:8080/nexus/content/groups/public</url>
             <releases>
                 <enabled>true</enabled>
                 <updatePolicy>always</updatePolicy>
@@ -37,12 +37,12 @@
         <repository>
             <id>releases</id>
             <name>Releases</name>
-            <url>http://54.178.1.171:8080/nexus/content/repositories/releases/</url>
+            <url>http://54.248.237.2:8080/nexus/content/repositories/releases/</url>
         </repository>
     </distributionManagement>
 
     <ciManagement>
-        <url>http://54.178.1.171:8080/jenkins</url>
+        <url>http://54.248.237.2:8080/jenkins</url>
     </ciManagement>
     
 	<dependencies>
