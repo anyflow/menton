@@ -7,7 +7,7 @@
 	<packaging>jar</packaging>
 	<name>menton</name>
 	<version>1.5.1</version>
-	<description>menton Framework</description>
+	<description>menton REST server Framework</description>
 	<url>https://github.com/anyflow/Menton</url>
 
 	<properties>
