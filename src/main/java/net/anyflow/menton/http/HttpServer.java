@@ -32,16 +32,16 @@ public class HttpServer implements TaskCompletionInformer {
 		taskCompletionListeners = new ArrayList<TaskCompletionListener>();
 	}
 
-	public void start() {
-		start(null, Configurator.instance().httpPort());
+	public Channel start() {
+		return start(null, Configurator.instance().httpPort());
 	}
 
-	public void start(Class<? extends RequestHandler> requestHandlerClass) {
-		start(requestHandlerClass, Configurator.instance().httpPort());
+	public Channel start(Class<? extends RequestHandler> requestHandlerClass) {
+		return start(requestHandlerClass, Configurator.instance().httpPort());
 	}
 
-	public void start(int port) {
-		start(null, port);
+	public Channel start(int port) {
+		return start(null, port);
 	}
 
 	/**
