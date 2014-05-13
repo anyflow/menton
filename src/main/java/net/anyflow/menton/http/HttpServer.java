@@ -1,6 +1,8 @@
 package net.anyflow.menton.http;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -52,7 +54,7 @@ public class HttpServer implements TaskCompletionInformer {
 		RequestHandler.setRequestHandlers(requestHandlerClasses);
 	}
 
-	private void start(Class<? extends RequestHandler> requestHandlerClass, int port) {
+	private Channel start(Class<? extends RequestHandler> requestHandlerClass, int port) {
 		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0), new DefaultThreadFactory("server/boss"));
 		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory(
 				"server/worker"));
@@ -63,14 +65,19 @@ public class HttpServer implements TaskCompletionInformer {
 
 			ServerBootstrap bootstrap = new ServerBootstrap();
 
+			
 			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(serverChannelInitializer);
-			bootstrap.bind(port).sync();
-
+			ChannelFuture channelFuture = bootstrap.bind(port).sync();
+			
 			logger.info("Menton HTTP server started.");
+			
+			return channelFuture.channel();
 		}
 		catch(InterruptedException e) {
 			logger.error("Menton HTTP server failed to start...", e);
 			shutdown();
+			
+			return null;
 		}
 	}
 
