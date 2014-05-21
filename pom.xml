@@ -6,7 +6,7 @@
 	<artifactId>menton</artifactId>
 	<packaging>jar</packaging>
 	<name>menton</name>
-	<version>1.5.2</version>
+	<version>1.6.0-alpha</version>
 	<description>menton REST server Framework/Runtime</description>
 	<url>https://github.com/anyflow/Menton</url>
 

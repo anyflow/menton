@@ -11,12 +11,12 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -28,7 +28,7 @@ import net.anyflow.menton.Environment;
 /**
  * @author anyflow
  */
-public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpServerHandler.class);
 
@@ -48,15 +48,15 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	}
 
 	private HttpRequest request;
-	private Class<? extends RequestHandler> requestHandlerClass;
+	private final WebSocketFrameHandler webSocketFrameHandler;
+	private WebSocketServerHandshaker webSocketHandshaker = null;
 
-	public HttpServerHandler() { }
+	public HttpServerHandler() {
+		webSocketFrameHandler = null;
+	}
 
-	/**
-	 * @param requestHandlerClass
-	 */
-	public HttpServerHandler(Class<? extends RequestHandler> requestHandlerClass) {
-		this.requestHandlerClass = requestHandlerClass;
+	public HttpServerHandler(WebSocketFrameHandler webSocketFrameHandler) {
+		this.webSocketFrameHandler = webSocketFrameHandler;
 	}
 
 	private String getExtension(String filePath) {
@@ -94,14 +94,34 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 	 * @see io.netty.channel.SimpleChannelInboundHandler#channelRead0(io.netty.channel.ChannelHandlerContext, java.lang.Object)
 	 */
 	@Override
-	protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
+	protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+
+		if(webSocketFrameHandler != null) {
+			if(msg instanceof FullHttpRequest) {
+				FullHttpRequest request = (FullHttpRequest)msg;
+
+				if("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade")) && "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
+					webSocketHandshaker = (new DefaultWebSocketHandshaker()).handshake(ctx, request);
+					return;
+				}
+			}
+			else if(msg instanceof WebSocketFrame) {
+				if(webSocketHandshaker == null) { throw new IllegalStateException("WebSocketServerHandshaker shouldn't be null"); }
+
+				webSocketFrameHandler.handle(webSocketHandshaker, ctx, (WebSocketFrame)msg);
+				return;
+			}
+			else {
+				return;
+			}
+		}
 
 		if(HttpHeaders.is100ContinueExpected(request)) {
 			ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));
 			return;
 		}
 
-		request = new HttpRequest(ctx.channel(), msg);
+		request = new HttpRequest(ctx.channel(), (FullHttpRequest)msg);
 
 		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpRequest"))) {
 			logger.info(request.toString());
@@ -138,8 +158,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			try {
 				String path = (new URI(request.getUri())).getPath();
 
-				String content = requestHandlerClass != null ? handleMethodTypeHandler(request, response, path) : handleClassTypeHandler(request,
-						response, path);
+				String content = handleClassTypeHandler(request, response, path);
 
 				response.setContent(content);
 			}
@@ -162,10 +181,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 			catch(SecurityException e) {
 				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 				logger.error("Failed to access business logic handler.", e);
-			}
-			catch(InvocationTargetException e) {
-				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
 			}
 			catch(Exception e) {
 				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
@@ -222,26 +237,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		return handler.call();
 	}
 
-	private String handleMethodTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws IllegalAccessException,
-			InvocationTargetException, IllegalArgumentException, SecurityException, InstantiationException, IOException {
-
-		RequestHandler requestHandler = (RequestHandler)requestHandlerClass.getConstructors()[0].newInstance();
-
-		requestHandler.initialize(request, response);
-		Method handler = requestHandler.findMethod(requestedPath, request.getMethod().toString());
-
-		if(handler == null) {
-			response.setStatus(HttpResponseStatus.NOT_FOUND);
-			logger.info("unexcepted URI : {}", request.getUri().toString());
-
-			response.headers().add(Names.CONTENT_TYPE, "text/html");
-
-			return HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus());
-		}
-
-		return handler.invoke(requestHandler, (Object[])null).toString();
-	}
-
 	@Override
 	public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
 		ctx.flush();
@@ -252,4 +247,25 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
 		logger.error(cause.getMessage(), cause);
 		ctx.close();
 	}
+
+	// private String handleMethodTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws IllegalAccessException,
+	// InvocationTargetException, IllegalArgumentException, SecurityException, InstantiationException, IOException {
+	//
+	// RequestHandler requestHandler = (RequestHandler)requestHandlerClass.getConstructors()[0].newInstance();
+	//
+	// requestHandler.initialize(request, response);
+	// Method handler = requestHandler.findMethod(requestedPath, request.getMethod().toString());
+	//
+	// if(handler == null) {
+	// response.setStatus(HttpResponseStatus.NOT_FOUND);
+	// logger.info("unexcepted URI : {}", request.getUri().toString());
+	//
+	// response.headers().add(Names.CONTENT_TYPE, "text/html");
+	//
+	// return HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus());
+	// }
+	//
+	// return handler.invoke(requestHandler, (Object[])null).toString();
+	// }
+
 }

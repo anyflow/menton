@@ -3,9 +3,15 @@ package net.anyflow.menton.http;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.HttpContentCompressor;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.util.ArrayList;
@@ -32,51 +38,59 @@ public class HttpServer implements TaskCompletionInformer {
 		taskCompletionListeners = new ArrayList<TaskCompletionListener>();
 	}
 
-	public Channel start() {
-		return start(null, Configurator.instance().httpPort());
-	}
-
-	public Channel start(Class<? extends RequestHandler> requestHandlerClass) {
-		return start(requestHandlerClass, Configurator.instance().httpPort());
-	}
-
-	public Channel start(int port) {
-		return start(null, port);
+	/**
+	 * @param requestHandlerClasses class type request handler list.
+	 * @return
+	 */
+	public Channel start(List<Class<? extends RequestHandler>> requestHandlerClasses) {
+		return start(requestHandlerClasses, null);
 	}
 
 	/**
-	 * Register class type HTTP Request handlers manually. Without it, reflection will register these(only in the module which contains Entrypoint).
-	 * 
-	 * @param requestHandlerClasses
-	 *            class type request handler list.
+	 * @param requestHandlerClasses class type request handler list.
+	 * @param webSocketFrameHandler
+	 * @return
 	 */
-	public void register(List<Class<? extends RequestHandler>> requestHandlerClasses) {
+	public Channel start(List<Class<? extends RequestHandler>> requestHandlerClasses, final WebSocketFrameHandler webSocketFrameHandler) {
 		RequestHandler.setRequestHandlers(requestHandlerClasses);
-	}
-
-	private Channel start(Class<? extends RequestHandler> requestHandlerClass, int port) {
+		
 		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0), new DefaultThreadFactory("server/boss"));
 		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory(
 				"server/worker"));
 
 		try {
-			ServerChannelInitializer serverChannelInitializer = requestHandlerClass != null ? new ServerChannelInitializer(requestHandlerClass)
-					: new ServerChannelInitializer();
-
 			ServerBootstrap bootstrap = new ServerBootstrap();
 
+			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
+
+				@Override
+				protected void initChannel(SocketChannel ch) throws Exception {
+					// ChannelHandler adding order is 'very' important.
+					// HttpServerHandler should be added last after outbound handlers in spite of it is inbound handler.
+					// Otherwise, outbound handlers will not be handled.
+
+					if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writelogOfNettyLogger"))) {
+						ch.pipeline().addLast("log", new LoggingHandler("menton/server", Configurator.instance().logLevel()));
+					}
+
+					ch.pipeline().addLast("decoder", new HttpRequestDecoder());
+					ch.pipeline().addLast("aggregator", new io.netty.handler.codec.http.HttpObjectAggregator(1048576)); // Handle HttpChunks.
+					ch.pipeline().addLast("encoder", new HttpResponseEncoder());
+					ch.pipeline().addLast("deflater", new HttpContentCompressor()); // Automatic content compression.
+					ch.pipeline().addLast("bizHandler", new HttpServerHandler(webSocketFrameHandler));
+				}
+			});
 			
-			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(serverChannelInitializer);
-			ChannelFuture channelFuture = bootstrap.bind(port).sync();
-			
+			ChannelFuture channelFuture = bootstrap.bind(Configurator.instance().httpPort()).sync();
+
 			logger.info("Menton HTTP server started.");
-			
+
 			return channelFuture.channel();
 		}
 		catch(InterruptedException e) {
 			logger.error("Menton HTTP server failed to start...", e);
 			shutdown();
-			
+
 			return null;
 		}
 	}
