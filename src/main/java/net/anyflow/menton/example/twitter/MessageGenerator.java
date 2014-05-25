@@ -9,7 +9,8 @@ import java.io.IOException;
 
 import net.anyflow.menton.http.HttpResponse;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 /**
  * @author Park Hyunjeong
