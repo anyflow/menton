@@ -94,6 +94,14 @@ public class Configurator extends java.util.Properties {
 		return ret;
 	}
 
+	public String WebResourcePhysicalRootPath() {
+		return this.getProperty("menton.httpServer.webResourcePhysicalRootPath", null);
+	}
+	
+	public void setWebResourcePhysicalRootPath(String physicalRootPath) {
+		this.setProperty("menton.httpServer.webResourcePhysicalRootPath", physicalRootPath);
+	}
+	
 	public LogLevel logLevel() {
 		if(logger.isTraceEnabled()) {
 			return LogLevel.TRACE;

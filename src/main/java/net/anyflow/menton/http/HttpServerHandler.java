@@ -15,6 +15,9 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -24,6 +27,8 @@ import java.util.Map;
 
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.Environment;
+
+import com.google.common.io.Files;
 
 /**
  * @author anyflow
@@ -39,6 +44,8 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 	static {
 		FILE_REQUEST_EXTENSIONS = new HashMap<String, String>();
 
+		FILE_REQUEST_EXTENSIONS.put("html", "text/html");
+		FILE_REQUEST_EXTENSIONS.put("htm", "text/html");
 		FILE_REQUEST_EXTENSIONS.put("css", "text/css");
 		FILE_REQUEST_EXTENSIONS.put("js", "text/javascript");
 		FILE_REQUEST_EXTENSIONS.put("gif", "image/gif");
@@ -57,14 +64,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 	public HttpServerHandler(WebSocketFrameHandler webSocketFrameHandler) {
 		this.webSocketFrameHandler = webSocketFrameHandler;
-	}
-
-	private String getExtension(String filePath) {
-
-		String[] tokens = filePath.split("\\.");
-		if(tokens.length <= 0) { return null; }
-
-		return tokens[tokens.length - 1];
 	}
 
 	private String getFileRequestPath(String uri) {
@@ -135,6 +134,16 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileRequestPath);
 
 			if(is == null) {
+				String rootPath = (new File(Configurator.instance().WebResourcePhysicalRootPath(), fileRequestPath)).getPath();
+				try {
+					is = new FileInputStream(rootPath);
+				}
+				catch(FileNotFoundException e) {
+					is = null;
+				}
+			}
+
+			if(is == null) {
 				response.setStatus(HttpResponseStatus.NOT_FOUND);
 			}
 			else {
@@ -150,7 +159,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 				buffer.flush();
 				response.content().writeBytes(buffer.toByteArray());
 
-				String ext = getExtension(fileRequestPath);
+				String ext = Files.getFileExtension(fileRequestPath);
 				response.headers().set(Names.CONTENT_TYPE, FILE_REQUEST_EXTENSIONS.get(ext));
 			}
 		}
@@ -208,7 +217,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 		if(Configurator.instance().getProperty("menton.httpServer.allowCrossDomain", "false").equalsIgnoreCase("true")) {
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET");
+			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, PUT, DELETE");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
 			response.headers().add(Names.ACCESS_CONTROL_MAX_AGE, "1728000");
 		}
