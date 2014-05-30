@@ -23,10 +23,14 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.Environment;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.google.common.io.Files;
 
@@ -44,14 +48,19 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 	static {
 		FILE_REQUEST_EXTENSIONS = new HashMap<String, String>();
 
-		FILE_REQUEST_EXTENSIONS.put("html", "text/html");
-		FILE_REQUEST_EXTENSIONS.put("htm", "text/html");
-		FILE_REQUEST_EXTENSIONS.put("css", "text/css");
-		FILE_REQUEST_EXTENSIONS.put("js", "text/javascript");
-		FILE_REQUEST_EXTENSIONS.put("gif", "image/gif");
-		FILE_REQUEST_EXTENSIONS.put("png", "image/png");
-		FILE_REQUEST_EXTENSIONS.put("jpg", "text/jpg");
-		FILE_REQUEST_EXTENSIONS.put("bmp", "text/bmp");
+		try {
+			JSONObject obj = new JSONObject(Configurator.instance().getProperty("menton.httpServer.MIME"));
+			@SuppressWarnings("unchecked")
+			Iterator<String> keys = obj.keys();
+
+			while(keys.hasNext()) {
+				String key = keys.next();
+				FILE_REQUEST_EXTENSIONS.put(key, obj.get(key).toString());
+			}
+		}
+		catch(JSONException e) {
+			logger.error(e.getMessage(), e);
+		}
 	}
 
 	private HttpRequest request;
