@@ -1,6 +1,3 @@
-/**
- * 
- */
 package net.anyflow.menton.http;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -150,17 +147,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 				response.setStatus(HttpResponseStatus.NOT_FOUND);
 				logger.info("unexcepted URI : {}", request.getUri().toString());
 			}
-			catch(InstantiationException e) {
+			catch(InstantiationException | IllegalAccessException | IllegalArgumentException e) {
 				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 				logger.error("Generating new request handler instance failed.", e);
-			}
-			catch(IllegalAccessException e) {
-				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				logger.error("Failed to access business logic handler.", e);
-			}
-			catch(IllegalArgumentException e) {
-				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				logger.error("Failed to access business logic handler.", e);
 			}
 			catch(SecurityException e) {
 				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
@@ -272,25 +261,4 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		logger.error(cause.getMessage(), cause);
 		ctx.close();
 	}
-
-	// private String handleMethodTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws IllegalAccessException,
-	// InvocationTargetException, IllegalArgumentException, SecurityException, InstantiationException, IOException {
-	//
-	// RequestHandler requestHandler = (RequestHandler)requestHandlerClass.getConstructors()[0].newInstance();
-	//
-	// requestHandler.initialize(request, response);
-	// Method handler = requestHandler.findMethod(requestedPath, request.getMethod().toString());
-	//
-	// if(handler == null) {
-	// response.setStatus(HttpResponseStatus.NOT_FOUND);
-	// logger.info("unexcepted URI : {}", request.getUri().toString());
-	//
-	// response.headers().add(Names.CONTENT_TYPE, "text/html");
-	//
-	// return HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus());
-	// }
-	//
-	// return handler.invoke(requestHandler, (Object[])null).toString();
-	// }
-
 }
