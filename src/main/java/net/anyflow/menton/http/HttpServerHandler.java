@@ -63,7 +63,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		}
 	}
 
-	private HttpRequest request;
 	private final WebSocketFrameHandler webSocketFrameHandler;
 	private WebSocketServerHandshaker webSocketHandshaker = null;
 
@@ -75,10 +74,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		this.webSocketFrameHandler = webSocketFrameHandler;
 	}
 
-	private String getFileRequestPath(String uri) {
+	private String getWebResourceRequestPath(HttpRequest request) {
 
 		String path;
-
 		try {
 			path = new URI(request.getUri()).getPath();
 		}
@@ -90,7 +88,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			if(path.endsWith("." + ext) == false) {
 				continue;
 			}
-
 			return path;
 		}
 
@@ -104,32 +101,31 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
 
-		if(webSocketFrameHandler != null) {
-			if(msg instanceof FullHttpRequest) {
-				FullHttpRequest request = (FullHttpRequest)msg;
+		if(msg instanceof FullHttpRequest) {
+			FullHttpRequest request = (FullHttpRequest)msg;
 
-				if("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade")) && "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
-					webSocketHandshaker = (new DefaultWebSocketHandshaker()).handshake(ctx, request);
-					return;
-				}
-			}
-			else if(msg instanceof WebSocketFrame) {
-				if(webSocketHandshaker == null) { throw new IllegalStateException("WebSocketServerHandshaker shouldn't be null"); }
-
-				webSocketFrameHandler.handle(webSocketHandshaker, ctx, (WebSocketFrame)msg);
-				return;
-			}
-			else {
+			if("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade")) && "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
+				webSocketHandshaker = (new DefaultWebSocketHandshaker()).handshake(ctx, request);
 				return;
 			}
 		}
+		else if(msg instanceof WebSocketFrame) {
+			if(webSocketHandshaker == null) { throw new IllegalStateException("WebSocketServerHandshaker shouldn't be null"); }
+			if(webSocketFrameHandler == null) { throw new IllegalStateException("webSocketFrameHandler not found"); }
+
+			webSocketFrameHandler.handle(webSocketHandshaker, ctx, (WebSocketFrame)msg);
+			return;
+		}
+		else {
+			return;
+		}
+
+		HttpRequest request = new HttpRequest(ctx.channel(), (FullHttpRequest)msg);
 
 		if(HttpHeaders.is100ContinueExpected(request)) {
 			ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));
 			return;
 		}
-
-		request = new HttpRequest(ctx.channel(), (FullHttpRequest)msg);
 
 		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpRequest"))) {
 			logger.info(request.toString());
@@ -137,40 +133,10 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(), request.headers().get(HttpHeaders.Names.COOKIE));
 
-		String fileRequestPath = getFileRequestPath(request.getUri());
+		String webResourceRequestPath = getWebResourceRequestPath(request);
 
-		if(fileRequestPath != null) {
-			InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileRequestPath);
-
-			if(is == null) {
-				String rootPath = (new File(Configurator.instance().WebResourcePhysicalRootPath(), fileRequestPath)).getPath();
-				try {
-					is = new FileInputStream(rootPath);
-				}
-				catch(FileNotFoundException e) {
-					is = null;
-				}
-			}
-
-			if(is == null) {
-				response.setStatus(HttpResponseStatus.NOT_FOUND);
-			}
-			else {
-				ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-				int nRead;
-				byte[] data = new byte[16384];
-
-				while((nRead = is.read(data, 0, data.length)) != -1) {
-					buffer.write(data, 0, nRead);
-				}
-
-				buffer.flush();
-				response.content().writeBytes(buffer.toByteArray());
-
-				String ext = Files.getFileExtension(fileRequestPath);
-				response.headers().set(Names.CONTENT_TYPE, FILE_REQUEST_EXTENSIONS.get(ext));
-			}
+		if(webResourceRequestPath != null) {
+			handleWebResourceRequest(response, webResourceRequestPath);
 		}
 		else {
 			try {
@@ -206,7 +172,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			}
 		}
 
-		setDefaultHeaders(response);
+		setDefaultHeaders(request, response);
 
 		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpResponse"))) {
 			logger.info(response.toString());
@@ -215,7 +181,48 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		ctx.write(response);
 	}
 
-	private void setDefaultHeaders(HttpResponse response) {
+	/**
+	 * @param response
+	 * @param webResourceRequestPath
+	 * @throws IOException
+	 */
+	private void handleWebResourceRequest(HttpResponse response, String webResourceRequestPath) throws IOException {
+		InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(webResourceRequestPath);
+
+		if(is == null) {
+			String rootPath = (new File(Configurator.instance().WebResourcePhysicalRootPath(), webResourceRequestPath)).getPath();
+			try {
+				is = new FileInputStream(rootPath);
+			}
+			catch(FileNotFoundException e) {
+				is = null;
+			}
+		}
+
+		if(is == null) {
+			response.setStatus(HttpResponseStatus.NOT_FOUND);
+		}
+		else {
+			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+			int nRead;
+			byte[] data = new byte[16384];
+
+			while((nRead = is.read(data, 0, data.length)) != -1) {
+				buffer.write(data, 0, nRead);
+			}
+
+			buffer.flush();
+			response.content().writeBytes(buffer.toByteArray());
+
+			String ext = Files.getFileExtension(webResourceRequestPath);
+			response.headers().set(Names.CONTENT_TYPE, FILE_REQUEST_EXTENSIONS.get(ext));
+
+			is.close();
+		}
+	}
+
+	private void setDefaultHeaders(HttpRequest request, HttpResponse response) {
 
 		response.headers().add(Names.SERVER, Environment.PROJECT_ARTIFACT_ID + " " + Environment.PROJECT_VERSION);
 
