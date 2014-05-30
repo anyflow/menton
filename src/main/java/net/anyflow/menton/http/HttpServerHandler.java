@@ -138,7 +138,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		else {
 			try {
 				String path = (new URI(request.getUri())).getPath();
-
 				String content = handleClassTypeHandler(request, response, path);
 
 				response.setContent(content);
@@ -147,17 +146,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 				response.setStatus(HttpResponseStatus.NOT_FOUND);
 				logger.info("unexcepted URI : {}", request.getUri().toString());
 			}
-			catch(InstantiationException | IllegalAccessException | IllegalArgumentException e) {
-				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				logger.error("Generating new request handler instance failed.", e);
-			}
-			catch(SecurityException e) {
-				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				logger.error("Failed to access business logic handler.", e);
-			}
 			catch(Exception e) {
 				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				logger.error("Unknown exception was thrown in business logic handler. Look into exception parents.", e);
+				logger.error("Unknown exception was thrown in business logic handler.\r\n" + e.getMessage(), e);
 			}
 		}
 
