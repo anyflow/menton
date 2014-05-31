@@ -11,6 +11,7 @@ import io.netty.handler.codec.http.CookieDecoder;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.ServerCookieEncoder;
@@ -101,6 +102,12 @@ public class HttpResponse extends DefaultFullHttpResponse {
 					buf.append("   ").append(name).append(" = ").append(value).append("\r\n");
 				}
 			}
+		}
+
+		if("false".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.logWebResourceHttpResponseContent", "false"))
+				&& Configurator.instance().webResourceExtensionToMimes().containsValue(headers().get(Names.CONTENT_TYPE))) {
+			buf.append("Content: WEB RESOURCE CONTENT");
+			return buf.toString();
 		}
 
 		String content = this.content().toString(CharsetUtil.UTF_8);

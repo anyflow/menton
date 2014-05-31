@@ -19,15 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.Environment;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import com.google.common.io.Files;
 
@@ -39,26 +33,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpServerHandler.class);
 
 	private static final String FAILED_TO_FIND_REQUEST_HANDLER = "Failed to find the request handler.";
-
-	private static final Map<String, String> FILE_REQUEST_EXTENSIONS;
-
-	static {
-		FILE_REQUEST_EXTENSIONS = new HashMap<String, String>();
-
-		try {
-			JSONObject obj = new JSONObject(Configurator.instance().getProperty("menton.httpServer.MIME"));
-			@SuppressWarnings("unchecked")
-			Iterator<String> keys = obj.keys();
-
-			while(keys.hasNext()) {
-				String key = keys.next();
-				FILE_REQUEST_EXTENSIONS.put(key, obj.get(key).toString());
-			}
-		}
-		catch(JSONException e) {
-			logger.error(e.getMessage(), e);
-		}
-	}
 
 	private final WebSocketFrameHandler webSocketFrameHandler;
 	private WebSocketServerHandshaker webSocketHandshaker = null;
@@ -81,7 +55,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			return null;
 		}
 
-		for(String ext : FILE_REQUEST_EXTENSIONS.keySet()) {
+		for(String ext : Configurator.instance().webResourceExtensionToMimes().keySet()) {
 			if(path.endsWith("." + ext) == false) {
 				continue;
 			}
@@ -196,7 +170,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			response.content().writeBytes(buffer.toByteArray());
 
 			String ext = Files.getFileExtension(webResourceRequestPath);
-			response.headers().set(Names.CONTENT_TYPE, FILE_REQUEST_EXTENSIONS.get(ext));
+			response.headers().set(Names.CONTENT_TYPE, Configurator.instance().webResourceExtensionToMimes().get(ext));
 
 			is.close();
 		}
