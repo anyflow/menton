@@ -112,7 +112,7 @@ public class HttpResponse extends DefaultFullHttpResponse {
 		}
 		else {
 			int index = content.length() < size ? content.length() : size - 1;
-			buf.append("The first" + size + " character(s) of response content:\r\n   ").append(content.substring(0, index));
+			buf.append("The first " + size + " character(s) of response content:\r\n   ").append(content.substring(0, index));
 		}
 
 		return buf.toString();
