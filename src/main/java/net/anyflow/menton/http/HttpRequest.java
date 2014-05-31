@@ -179,7 +179,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		StringBuilder buf = new StringBuilder();
 
-		buf.append("\r\n\r\n");
+		buf.append("\r\n");
 		buf.append("Version: ").append(this.getProtocolVersion()).append("\r\n");
 		buf.append("Request URI: ").append(this.getUri()).append("\r\n");
 		buf.append("HTTP METHOD: ").append(this.getMethod().toString()).append("\r\n");
@@ -206,6 +206,14 @@ public class HttpRequest extends DefaultFullHttpRequest {
 					buf.append("   ").append(key).append(" = ").append(val).append("\r\n");
 				}
 			}
+		}
+
+		buf.append("Content:").append("\r\n");
+		if(this.content().isReadable()) {
+			buf.append(content().toString(CharsetUtil.UTF_8));
+		}
+		else {
+			buf.append("UNREADABLE CONTENT");
 		}
 
 		DecoderResult result = this.getDecoderResult();
@@ -235,7 +243,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	}
 
 	public void normalize() {
-		setupParameters();
+		normalizeParameters();
 
 		headers().set(HttpHeaders.Names.COOKIE, ClientCookieEncoder.encode(cookies));
 	}
@@ -262,23 +270,22 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		}
 	}
 
-	private void setupParameters() {
-
+	private void normalizeParameters() {
 		String address = (new StringBuilder()).append(uri().getScheme()).append("://").append(uri().getAuthority()).append(uri().getPath())
 				.toString();
 
 		if(HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
 			address += "?" + convertParametersToString();
 		}
-		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE)
-				&& headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
-				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
+		else if(HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod())) {
+			if(headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false
+					|| headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)) {
+				ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), CharsetUtil.UTF_8);
 
-			ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), CharsetUtil.UTF_8);
-
-			headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
-			content().clear();
-			content().writeBytes(content);
+				headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
+				content().clear();
+				content().writeBytes(content);
+			}
 		}
 
 		setUri(address);

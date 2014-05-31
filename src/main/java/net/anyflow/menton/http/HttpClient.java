@@ -32,11 +32,11 @@ public class HttpClient {
 
 	final Bootstrap bootstrap;
 	private final HttpRequest httpRequest;
-	
+
 	public HttpClient(String uri) throws URISyntaxException, UnsupportedOperationException {
-		
+
 		bootstrap = new Bootstrap();
-		
+
 		httpRequest = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri));
 
 		if(httpRequest().uri().getScheme().equalsIgnoreCase("http") == false) {
@@ -49,7 +49,7 @@ public class HttpClient {
 	public HttpRequest httpRequest() {
 		return httpRequest;
 	}
-	
+
 	public HttpResponse get() {
 		return get(null);
 	}
@@ -65,11 +65,7 @@ public class HttpClient {
 	}
 
 	public HttpResponse post(final MessageReceiver receiver) {
-
 		httpRequest().setMethod(HttpMethod.POST);
-		if(httpRequest().headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
-		}
 
 		return request(receiver);
 	}
@@ -80,10 +76,6 @@ public class HttpClient {
 
 	public HttpResponse put(final MessageReceiver receiver) {
 		httpRequest().setMethod(HttpMethod.PUT);
-
-		if(httpRequest().headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
-		}
 
 		return request(receiver);
 	}
@@ -100,10 +92,10 @@ public class HttpClient {
 
 	public <T> HttpClient setOption(ChannelOption<T> option, T value) {
 		bootstrap.option(option, value);
-		
+
 		return this;
 	}
-	
+
 	/**
 	 * request.
 	 * 
@@ -126,7 +118,7 @@ public class HttpClient {
 
 		final EventLoopGroup group = new NioEventLoopGroup(1, new DefaultThreadFactory("client"));
 		bootstrap.group(group).channel(NioSocketChannel.class).handler(new ClientChannelInitializer(clientHandler, ssl));
-		
+
 		try {
 			Channel channel = bootstrap.connect(httpRequest().uri().getHost(), httpRequest().uri().getPort()).sync().channel();
 			channel.writeAndFlush(httpRequest);
@@ -150,7 +142,6 @@ public class HttpClient {
 			}
 		}
 		catch(InterruptedException e) {
-
 			group.shutdownGracefully();
 			logger.error(e.getMessage(), e);
 
@@ -159,7 +150,6 @@ public class HttpClient {
 	}
 
 	private void setDefaultHeaders() {
-
 		if(httpRequest().headers().contains(HttpHeaders.Names.HOST) == false) {
 			httpRequest().headers().set(HttpHeaders.Names.HOST, httpRequest().uri().getHost());
 		}
@@ -171,6 +161,9 @@ public class HttpClient {
 		}
 		if(httpRequest().headers().contains(HttpHeaders.Names.ACCEPT_CHARSET) == false) {
 			httpRequest().headers().set(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
+		}
+		if(httpRequest().headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
+			httpRequest().headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
 		}
 	}
 }

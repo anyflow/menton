@@ -24,7 +24,7 @@ public class ListTest extends ApiTestCase {
 	@BeforeClass
 	public static void setup() throws UnsupportedOperationException, URISyntaxException {
 		TweetTest tt = new TweetTest();
-		
+
 		for(int i = 0; i < count; ++i) {
 			tt.test1_PUT();
 		}
@@ -37,7 +37,7 @@ public class ListTest extends ApiTestCase {
 
 	final String address = "http://localhost:" + ApiTestSuite.server().port() + "/twitter/list";
 	final static int count = 100;
-	
+
 	@Test
 	public void test() throws UnsupportedOperationException, URISyntaxException {
 
@@ -49,8 +49,8 @@ public class ListTest extends ApiTestCase {
 
 		String content = response.content().toString(CharsetUtil.UTF_8);
 
-		List<Object> list = JsonPath.read(content,  "$.");
-		
-		assertTrue(list.size() == count);
+		List<Object> list = JsonPath.read(content, "$.");
+
+		assertTrue(list.size() >= count);
 	}
 }
