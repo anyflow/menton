@@ -18,8 +18,12 @@ import io.netty.util.CharsetUtil;
 
 import java.util.Set;
 
+import net.anyflow.menton.Configurator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.primitives.Ints;
 
 /**
  * @author anyflow
@@ -100,8 +104,16 @@ public class HttpResponse extends DefaultFullHttpResponse {
 		}
 
 		String content = this.content().toString(CharsetUtil.UTF_8);
-		int index = content.length() < 100 ? content.length() : 99;
-		buf.append("The first 100 characters of response content:\r\n").append(content.substring(0, index)).append("\r\n");
+
+		int size = Ints.tryParse(Configurator.instance().getProperty("menton.logging.httpResponseContentSize", "100"));
+
+		if(size < 0) {
+			buf.append("Content:\r\n   ").append(content);
+		}
+		else {
+			int index = content.length() < size ? content.length() : size - 1;
+			buf.append("The first" + size + " character(s) of response content:\r\n   ").append(content.substring(0, index));
+		}
 
 		return buf.toString();
 	}

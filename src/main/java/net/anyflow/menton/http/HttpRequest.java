@@ -180,9 +180,9 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		StringBuilder buf = new StringBuilder();
 
 		buf.append("\r\n");
-		buf.append("Version: ").append(this.getProtocolVersion()).append("\r\n");
 		buf.append("Request URI: ").append(this.getUri()).append("\r\n");
 		buf.append("HTTP METHOD: ").append(this.getMethod().toString()).append("\r\n");
+		buf.append("Version: ").append(this.getProtocolVersion()).append("\r\n");
 		buf.append("Request Headers:").append("\r\n");
 
 		List<Entry<String, String>> headers = this.headers().entries();
@@ -196,32 +196,34 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		Map<String, List<String>> params = parameters();
 
-		buf.append("Query String Parameters:").append("\r\n");
+		buf.append("Query String Parameters: ");
 
-		if(!params.isEmpty()) {
+		if(params.isEmpty()) {
+			buf.append("NONE\r\n");
+		}
+		else {
 			for(Entry<String, List<String>> p : params.entrySet()) {
 				String key = p.getKey();
 				List<String> vals = p.getValue();
 				for(String val : vals) {
-					buf.append("   ").append(key).append(" = ").append(val).append("\r\n");
+					buf.append("\r\n   ").append(key).append(" = ").append(val).append("\r\n");
 				}
 			}
 		}
 
-		buf.append("Content:").append("\r\n");
+		buf.append("Content: ");
 		if(this.content().isReadable()) {
-			buf.append(content().toString(CharsetUtil.UTF_8));
+			buf.append("\r\n   ").append(content().toString(CharsetUtil.UTF_8));
 		}
 		else {
-			buf.append("UNREADABLE CONTENT");
+			buf.append("UNREADABLE CONTENT or NONE");
 		}
 
 		DecoderResult result = this.getDecoderResult();
 
 		if(result.isSuccess() == false) {
-			buf.append(".. WITH DECODER FAILURE: ");
-			buf.append(result.cause());
-			buf.append("\r\n");
+			buf.append("\r\n").append(".. WITH DECODER FAILURE:");
+			buf.append("\r\n   ").append(result.cause());
 		}
 
 		return buf.toString();
