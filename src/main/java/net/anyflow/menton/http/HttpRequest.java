@@ -20,15 +20,22 @@ import io.netty.util.CharsetUtil;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import net.anyflow.menton.http.HttpConstants.HeaderValues;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * @author anyflow
@@ -112,24 +119,44 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		if(parameters != null) { return parameters; }
 
-		String queryString = null;
+		Map<String, List<String>> ret = Maps.newHashMap();
 
 		if(HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
-			queryString = getUri();
+			ret.putAll((new QueryStringDecoder(getUri())).parameters());
+			return ret;
 		}
 		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE)
 				&& headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
 				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
-			String dummy = "/dummy?";
-			queryString = dummy + content().toString(CharsetUtil.UTF_8);
-		}
-		else {
-			return new HashMap<String, List<String>>();
-		}
 
-		Map<String, List<String>> ret = (new QueryStringDecoder(queryString)).parameters();
+			ret.putAll((new QueryStringDecoder("/dummy?" + content().toString(CharsetUtil.UTF_8))).parameters());
+		}
+		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE)
+				&& headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HeaderValues.APPLICATION_JSON)
+				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
 
-		return ret.isEmpty() ? new HashMap<String, List<String>>() : ret;
+			String json = content().toString(CharsetUtil.UTF_8);
+
+			try {
+				JSONObject obj = new JSONObject(json);
+
+				Iterator<?> itr = obj.keys();
+				while(itr.hasNext()) {
+					String key = itr.next().toString();
+					if(ret.containsKey(key)) {
+						ret.get(key).add(obj.get(key).toString());
+					}
+					else {
+						ret.put(key, Lists.newArrayList(obj.get(key).toString()));
+					}
+				}
+			}
+			catch(JSONException e) {
+				logger.error(e.getMessage(), e);
+			}
+		}
+		
+		return ret;
 	}
 
 	/**
