@@ -5,7 +5,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -13,23 +12,22 @@ import net.anyflow.menton.Configurator;
 
 import org.reflections.Reflections;
 
-/**
- * @author anyflow Base class for business logic. The class contains common stuffs for generating business logic.
- */
-public class RequestHandler {
+import com.google.common.collect.Maps;
 
-	private static Map<String, Class<? extends RequestHandler>> handlerClassMap;
-	private static Map<String, Method> handlerMethodMap;
+/**
+ * Base class for request handler. The class contains common stuffs for generating business logic.
+ * 
+ * @author anyflow
+ */
+public abstract class RequestHandler {
+
+	private static final Map<String, Class<? extends RequestHandler>> handlerClassMap = Maps.newHashMap();
+	private static final Map<String, Method> handlerMethodMap = Maps.newHashMap();
 	private static Set<Class<? extends RequestHandler>> requestHandlerClasses;
 	private static String requestHandlerPakcageRoot;
 
 	private HttpRequest request;
 	private HttpResponse response;
-
-	static {
-		handlerClassMap = new HashMap<String, Class<? extends RequestHandler>>();
-		handlerMethodMap = new HashMap<String, Method>();
-	}
 
 	/**
 	 * @author anyflow
@@ -67,9 +65,7 @@ public class RequestHandler {
 	/**
 	 * @return processed content string
 	 */
-	public String call() {
-		throw new UnsupportedOperationException("Derived class's method should be called instead of this.");
-	}
+	public abstract String call();
 
 	/**
 	 * @param requestedPath
@@ -87,7 +83,6 @@ public class RequestHandler {
 		Method[] methods = this.getClass().getMethods();
 
 		for(Method item : methods) {
-
 			RequestHandler.Handles bl = item.getAnnotation(RequestHandler.Handles.class);
 
 			if(bl == null) {
@@ -127,9 +122,9 @@ public class RequestHandler {
 	 */
 	public static Class<? extends RequestHandler> findClass(String requestedPath, String httpMethod) {
 
-		String findKey = requestedPath + httpMethod;
+		String key = requestedPath + httpMethod;
 
-		if(handlerClassMap.containsKey(findKey)) { return handlerClassMap.get(findKey); }
+		if(handlerClassMap.containsKey(key)) { return handlerClassMap.get(key); }
 
 		if(requestHandlerClasses == null) {
 			requestHandlerClasses = (new Reflections(requestHandlerPakcageRoot)).getSubTypesOf(RequestHandler.class);
@@ -153,14 +148,14 @@ public class RequestHandler {
 					String path = (rawPath.charAt(0) == '/') ? rawPath : Configurator.instance().httpContextRoot() + rawPath;
 
 					if(requestedPath.equalsIgnoreCase(path)) {
-						handlerClassMap.put(findKey, item);
+						handlerClassMap.put(key, item);
 						return item;
 					}
 				}
 			}
 		}
 
-		handlerClassMap.put(findKey, null);
+		handlerClassMap.put(key, null);
 		return null;
 	}
 }
