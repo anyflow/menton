@@ -25,7 +25,7 @@ public class Entrypoint implements TaskCompletionListener {
 			net.anyflow.menton.Configurator.instance().initialize(getClass().getClassLoader().getResourceAsStream("META-INF/example/twitter/application.properties"));
 
 			// HTTP server initiation.
-			httpServer.start(null);
+			httpServer.start("net.anyflow");
 
 			Runtime.getRuntime().addShutdownHook(new Thread() {
 

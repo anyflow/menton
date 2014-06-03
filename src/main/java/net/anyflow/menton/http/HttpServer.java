@@ -39,20 +39,20 @@ public class HttpServer implements TaskCompletionInformer {
 	}
 
 	/**
-	 * @param requestHandlerClasses class type request handler list.
-	 * @return
+	 * @param requestHandlerPakcageRoot root package prefix of request handlers.
+	 * @return the HTTP channel
 	 */
-	public Channel start(List<Class<? extends RequestHandler>> requestHandlerClasses) {
-		return start(requestHandlerClasses, null);
+	public Channel start(String requestHandlerPakcageRoot) {
+		return start(requestHandlerPakcageRoot, null);
 	}
 
 	/**
-	 * @param requestHandlerClasses class type request handler list.
-	 * @param webSocketFrameHandler
-	 * @return
+	 * @param requestHandlerPakcageRoot root package prefix of request handlers.
+	 * @param webSocketFrameHandler websocket handler
+	 * @return the HTTP channel
 	 */
-	public Channel start(List<Class<? extends RequestHandler>> requestHandlerClasses, final WebSocketFrameHandler webSocketFrameHandler) {
-		RequestHandler.setRequestHandlers(requestHandlerClasses);
+	public Channel start(String requestHandlerPakcageRoot, final WebSocketFrameHandler webSocketFrameHandler) {
+		RequestHandler.setRequestHandlerPakcageRoot(requestHandlerPakcageRoot);
 		
 		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0), new DefaultThreadFactory("server/boss"));
 		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory(

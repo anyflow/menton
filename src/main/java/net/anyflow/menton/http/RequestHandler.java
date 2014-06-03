@@ -5,7 +5,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +12,8 @@ import java.util.Map;
 import net.anyflow.menton.Configurator;
 
 import org.reflections.Reflections;
+
+import com.google.common.collect.Lists;
 
 /**
  * @author anyflow Base class for business logic. The class contains common stuffs for generating business logic.
@@ -22,6 +23,10 @@ public class RequestHandler {
 	private static Map<String, Class<? extends RequestHandler>> handlerClassMap;
 	private static Map<String, Method> handlerMethodMap;
 	private static List<Class<? extends RequestHandler>> requestHandlerClasses;
+	private static String requestHandlerPakcageRoot;
+	
+	
+
 
 	private HttpRequest request;
 	private HttpResponse response;
@@ -115,6 +120,9 @@ public class RequestHandler {
 		return null;
 	}
 
+	public static void setRequestHandlerPakcageRoot(String requestHandlerPakcageRoot) {
+		RequestHandler.requestHandlerPakcageRoot = requestHandlerPakcageRoot;
+	}
 	/**
 	 * @param requestedPath
 	 * @param httpMethod
@@ -128,11 +136,14 @@ public class RequestHandler {
 		if(handlerClassMap.containsKey(findKey)) { return handlerClassMap.get(findKey); }
 
 		if(requestHandlerClasses == null) {
-			Reflections rf = new Reflections("");
-			System.out.println(rf.getStore().getStoreMap().toString());
+//			Reflections rf = new Reflections(
+//			          new ConfigurationBuilder()
+//		              .filterInputsBy(new FilterBuilder().include("net.anyflow"))
+//		              .setUrls(ClasspathHelper.forClassLoader())
+//		              .setScanners(new SubTypesScanner(), new TypeAnnotationsScanner()));
+			Reflections rf = new Reflections(requestHandlerPakcageRoot);
 
-			requestHandlerClasses = new ArrayList<Class<? extends RequestHandler>>();
-			requestHandlerClasses.addAll(rf.getSubTypesOf(RequestHandler.class));
+			requestHandlerClasses = Lists.newArrayList(rf.getSubTypesOf(RequestHandler.class));
 		}
 
 		for(Class<? extends RequestHandler> item : requestHandlerClasses) {
@@ -162,9 +173,5 @@ public class RequestHandler {
 
 		handlerClassMap.put(findKey, null);
 		return null;
-	}
-
-	public static void setRequestHandlers(List<Class<? extends RequestHandler>> requestHandlerClasses) {
-		RequestHandler.requestHandlerClasses = requestHandlerClasses;
 	}
 }
