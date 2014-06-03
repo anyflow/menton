@@ -76,7 +76,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			FullHttpRequest request = (FullHttpRequest)msg;
 
 			if("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade")) && "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
-				webSocketHandshaker = (new DefaultWebSocketHandshaker()).handshake(ctx, request);
+				if(webSocketFrameHandler == null) { throw new IllegalStateException("webSocketFrameHandler not found"); }
+				
+				webSocketHandshaker = (new DefaultWebSocketHandshaker(webSocketFrameHandler.subprotocols())).handshake(ctx, request);
 				return;
 			}
 		}
