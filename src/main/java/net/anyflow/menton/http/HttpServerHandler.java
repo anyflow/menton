@@ -10,6 +10,8 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -77,7 +79,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 			if("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade")) && "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
 				if(webSocketFrameHandler == null) { throw new IllegalStateException("webSocketFrameHandler not found"); }
-				
+
 				webSocketHandshaker = (new DefaultWebSocketHandshaker(webSocketFrameHandler.subprotocols())).handshake(ctx, request);
 				return;
 			}
@@ -216,6 +218,18 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		handler.initialize(request, response);
 
 		return handler.call();
+	}
+
+	@Override
+	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+		if(evt instanceof IdleStateEvent) {
+			IdleStateEvent e = (IdleStateEvent)evt;
+			if(e.state() == IdleState.READER_IDLE) {
+				ctx.close();
+			}
+			else if(e.state() == IdleState.WRITER_IDLE) {
+			}
+		}
 	}
 
 	@Override
