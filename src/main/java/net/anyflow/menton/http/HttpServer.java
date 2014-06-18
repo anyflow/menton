@@ -12,7 +12,6 @@ import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.util.ArrayList;
@@ -76,7 +75,7 @@ public class HttpServer implements TaskCompletionInformer {
 					if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writelogOfNettyLogger"))) {
 						ch.pipeline().addLast("log", new LoggingHandler("menton/server", Configurator.instance().logLevel()));
 					}
-					ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(10, 0, 0));
+
 					ch.pipeline().addLast("decoder", new HttpRequestDecoder());
 					ch.pipeline().addLast("aggregator", new io.netty.handler.codec.http.HttpObjectAggregator(1048576)); // Handle HttpChunks.
 					ch.pipeline().addLast("encoder", new HttpResponseEncoder());
