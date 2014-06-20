@@ -14,7 +14,6 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import net.anyflow.menton.Configurator;
@@ -24,20 +23,35 @@ import net.anyflow.menton.general.TaskCompletionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 /**
  * @author anyflow
  */
 public class HttpServer implements TaskCompletionInformer {
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpServer.class);
-	private EventLoopGroup bossGroup;
-	private EventLoopGroup workerGroup;
+	private final EventLoopGroup bossGroup;
+	private final EventLoopGroup workerGroup;
 	private final List<TaskCompletionListener> taskCompletionListeners;
 
 	public HttpServer() {
-		taskCompletionListeners = new ArrayList<TaskCompletionListener>();
+		taskCompletionListeners = Lists.newArrayList();
+		
+		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0), new DefaultThreadFactory("server/boss"));
+		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory(
+				"server/worker"));
 	}
 
+	public EventLoopGroup bossGroup() {
+		return bossGroup;
+	}
+
+	
+	public EventLoopGroup workerGroup() {
+		return workerGroup;
+	}
+	
 	/**
 	 * @param requestHandlerPakcageRoot
 	 *            root package prefix of request handlers.
@@ -56,16 +70,11 @@ public class HttpServer implements TaskCompletionInformer {
 	 */
 	public Channel start(String requestHandlerPakcageRoot, final WebSocketFrameHandler webSocketFrameHandler) {
 		RequestHandler.setRequestHandlerPakcageRoot(requestHandlerPakcageRoot);
-
-		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0), new DefaultThreadFactory("server/boss"));
-		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0), new DefaultThreadFactory(
-				"server/worker"));
-
 		try {
 			ServerBootstrap bootstrap = new ServerBootstrap();
 
 			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
-
+				
 				@Override
 				protected void initChannel(SocketChannel ch) throws Exception {
 					// ChannelHandler adding order is 'very' important.

@@ -3,7 +3,6 @@
  */
 package net.anyflow.menton.queue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -11,6 +10,8 @@ import java.util.concurrent.PriorityBlockingQueue;
 
 import net.anyflow.menton.general.TaskCompletionInformer;
 import net.anyflow.menton.general.TaskCompletionListener;
+
+import com.google.common.collect.Lists;
 
 /**
  * <p>
@@ -47,8 +48,8 @@ public class ProcessingQueue<Item extends Comparable<Item>> implements TaskCompl
 		this.processor = processor;
 		this.processorCount = processorCount;
 		this.queue = new PriorityBlockingQueue<Item>(processor.maxProcessingSize());
-		this.consumers = new ArrayList<Consumer>();
-		this.taskCompletionListeners = new ArrayList<TaskCompletionListener>();
+		this.consumers = Lists.newArrayList();
+		this.taskCompletionListeners = Lists.newArrayList();
 		this.shutdownSignaled = false;
 		this.maxSize = null;
 	}
@@ -137,9 +138,7 @@ public class ProcessingQueue<Item extends Comparable<Item>> implements TaskCompl
 	/**
 	 * Start message pump in the queue.
 	 */
-	public void start() {
-		ExecutorService executor = Executors.newCachedThreadPool();
-
+	public void start(ExecutorService executor) {
 		for(int i = 0; i < processorCount; ++i) {
 			String name = this.getClass().getSimpleName() + "[" + processor.getClass().getSimpleName() + "] - " + i;
 			Consumer consumer = new Consumer(name);
@@ -150,6 +149,14 @@ public class ProcessingQueue<Item extends Comparable<Item>> implements TaskCompl
 
 		logger.info("{}[{}] started[Processor count: {} / max processing size: {}]", new Object[] { this.getClass().getSimpleName(),
 				processor.getClass().getSimpleName(), processorCount, processor.maxProcessingSize() });
+	}
+	
+	/**
+	 * Start message pump in the queue.
+	 */
+	public void start() {
+		ExecutorService executor = Executors.newCachedThreadPool();
+		start(executor);
 	}
 
 	public boolean isTaskCompleted() {
@@ -184,7 +191,7 @@ public class ProcessingQueue<Item extends Comparable<Item>> implements TaskCompl
 		public void run() {
 			Thread.currentThread().setName(name);
 
-			ArrayList<Item> targets = new ArrayList<Item>();
+			List<Item> targets = Lists.newArrayList();
 
 			while(true) {
 				targets.clear();
