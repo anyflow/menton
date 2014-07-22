@@ -221,18 +221,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 	}
 
 	@Override
-	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-		if(evt instanceof IdleStateEvent) {
-			IdleStateEvent e = (IdleStateEvent)evt;
-			if(e.state() == IdleState.READER_IDLE) {
-				ctx.close();
-			}
-			else if(e.state() == IdleState.WRITER_IDLE) {
-			}
-		}
-	}
-
-	@Override
 	public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
 		ctx.flush();
 	}

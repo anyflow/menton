@@ -17,7 +17,6 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 
 import org.slf4j.Logger;
@@ -100,10 +99,9 @@ public class HttpClient {
 	 * request.
 	 * 
 	 * @param receiver
-	 * @return if receiver is not null the request processed successfully, returns HttpResponse instance, otherwise null;
-	 * @throws UnsupportedEncodingException
+	 * @return if receiver is not null the request processed successfully, returns HttpResponse instance, otherwise null.
 	 */
-	private HttpResponse request(final MessageReceiver receiver) throws IllegalArgumentException {
+	private HttpResponse request(final MessageReceiver receiver) {
 
 		boolean ssl = false;
 
@@ -141,7 +139,7 @@ public class HttpClient {
 				return null;
 			}
 		}
-		catch(InterruptedException e) {
+		catch(Exception e) {
 			group.shutdownGracefully();
 			logger.error(e.getMessage(), e);
 
