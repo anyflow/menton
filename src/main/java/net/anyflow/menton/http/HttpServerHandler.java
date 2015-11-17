@@ -1,5 +1,17 @@
 package net.anyflow.menton.http;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+
+import com.google.common.io.Files;
+
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -10,22 +22,8 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
-import io.netty.handler.timeout.IdleState;
-import io.netty.handler.timeout.IdleStateEvent;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.Environment;
-
-import com.google.common.io.Files;
 
 /**
  * @author anyflow
@@ -47,24 +45,16 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		this.webSocketFrameHandler = webSocketFrameHandler;
 	}
 
-	private String getWebResourceRequestPath(HttpRequest request) {
-
-		String path;
-		try {
-			path = new URI(request.getUri()).getPath();
-		}
-		catch(URISyntaxException e) {
-			return null;
-		}
+	private boolean isWebResourcePath(String path) {
 
 		for(String ext : Configurator.instance().webResourceExtensionToMimes().keySet()) {
 			if(path.endsWith("." + ext) == false) {
 				continue;
 			}
-			return path;
+			return true;
 		}
 
-		return null;
+		return false;
 	}
 
 	/*
@@ -95,34 +85,27 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			return;
 		}
 
-		HttpRequest request = new HttpRequest(ctx.channel(), (FullHttpRequest)msg);
+		FullHttpRequest rawRequest = (FullHttpRequest)msg;
 
-		if(HttpHeaders.is100ContinueExpected(request)) {
+		if(HttpHeaders.is100ContinueExpected(rawRequest)) {
 			ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));
 			return;
 		}
 
-		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpRequest"))) {
-			logger.info(request.toString());
-		}
+		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(), rawRequest.headers().get(HttpHeaders.Names.COOKIE));
 
-		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(), request.headers().get(HttpHeaders.Names.COOKIE));
+		String requestPath = new URI(rawRequest.getUri()).getPath();
 
-		String webResourceRequestPath = getWebResourceRequestPath(request);
-
-		if(webResourceRequestPath != null) {
-			handleWebResourceRequest(response, webResourceRequestPath);
+		if(isWebResourcePath(requestPath)) {
+			handleWebResourceRequest(response, requestPath);
 		}
 		else {
 			try {
-				String path = (new URI(request.getUri())).getPath();
-				String content = handleClassTypeHandler(request, response, path);
-
-				response.setContent(content);
+				processRequest(ctx.channel(), rawRequest, response);
 			}
 			catch(URISyntaxException e) {
 				response.setStatus(HttpResponseStatus.NOT_FOUND);
-				logger.info("unexcepted URI : {}", request.getUri().toString());
+				logger.info("unexcepted URI : {}", rawRequest.getUri());
 			}
 			catch(Exception e) {
 				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
@@ -130,7 +113,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			}
 		}
 
-		setDefaultHeaders(request, response);
+		setDefaultHeaders(rawRequest, response);
 
 		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpResponse"))) {
 			logger.info(response.toString());
@@ -180,7 +163,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		}
 	}
 
-	private void setDefaultHeaders(HttpRequest request, HttpResponse response) {
+	private void setDefaultHeaders(FullHttpRequest request, HttpResponse response) {
 
 		response.headers().add(Names.SERVER, Environment.PROJECT_ARTIFACT_ID + " " + Environment.PROJECT_VERSION);
 
@@ -199,25 +182,33 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
 	}
 
-	private String handleClassTypeHandler(HttpRequest request, HttpResponse response, String requestedPath) throws InstantiationException,
-			IllegalAccessException, IOException {
+	private void processRequest(Channel channel, FullHttpRequest rawRequest, HttpResponse response)
+			throws InstantiationException, IllegalAccessException, IOException, URISyntaxException {
 
-		Class<? extends RequestHandler> handlerClass = RequestHandler.findClass(requestedPath, request.getMethod().toString());
+		RequestHandler.MatchedCriterion mc = RequestHandler.findRequestHandler((new URI(rawRequest.getUri())).getPath(),
+				rawRequest.getMethod().toString());
 
-		if(handlerClass == null) {
+		if(mc.requestHandlerClass() == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
-			logger.info("unexcepted URI : {}", request.getUri().toString());
+			logger.info("unexcepted URI : {}", rawRequest.getUri());
 
 			response.headers().add(Names.CONTENT_TYPE, "text/html");
 
-			return HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus());
+			response.setContent(HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus()));
 		}
+		else {
+			HttpRequest request = new HttpRequest(channel, rawRequest, mc.pathParameters());
 
-		RequestHandler handler = handlerClass.newInstance();
+			RequestHandler handler = mc.requestHandlerClass().newInstance();
 
-		handler.initialize(request, response);
+			handler.initialize(request, response);
 
-		return handler.call();
+			if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpRequest"))) {
+				logger.info(request.toString());
+			}
+
+			response.setContent(handler.call());
+		}
 	}
 
 	@Override

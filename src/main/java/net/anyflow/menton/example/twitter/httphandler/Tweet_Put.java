@@ -1,16 +1,20 @@
 package net.anyflow.menton.example.twitter.httphandler;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
-
 import java.util.Date;
-
-import net.anyflow.menton.example.twitter.Database;
-import net.anyflow.menton.example.twitter.MessageGenerator;
-import net.anyflow.menton.example.twitter.model.Tweet;
-import net.anyflow.menton.http.RequestHandler;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.jayway.jsonpath.JsonPath;
+
+import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.CharsetUtil;
+import net.anyflow.menton.example.twitter.Database;
+import net.anyflow.menton.example.twitter.MessageGenerator;
+import net.anyflow.menton.example.twitter.model.Tweet;
+import net.anyflow.menton.http.HttpConstants.HeaderValues;
+import net.anyflow.menton.http.RequestHandler;
 
 /**
  * @author Park Hyunjeong
@@ -20,7 +24,15 @@ public class Tweet_Put extends RequestHandler {
 
 	@Override
 	public String call() {
-		String message = httpRequest().parameter("message");
+		String message;
+
+		if(HeaderValues.APPLICATION_JSON.equals(httpRequest().headers().get(Names.CONTENT_TYPE))) {
+			String content = httpRequest().content().toString(CharsetUtil.UTF_8);
+			message = JsonPath.read(content, "$.message").toString();
+		}
+		else {
+			message = httpRequest().parameter("message");
+		}
 
 		if(message == null) {
 			httpResponse().setStatus(HttpResponseStatus.FORBIDDEN);

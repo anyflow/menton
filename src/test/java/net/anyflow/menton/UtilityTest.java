@@ -4,18 +4,18 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-import io.netty.handler.codec.http.QueryStringDecoder;
 
 import java.util.List;
 import java.util.Map;
-
-import net.anyflow.menton.http.HttpClient;
 
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import io.netty.handler.codec.http.QueryStringDecoder;
+import net.anyflow.menton.http.HttpClient;
 
 /**
  * @author anyflow
@@ -76,5 +76,18 @@ public class UtilityTest {
 
 		String[] tokens = testString.split("\\.");
 		assertThat(tokens[1], is("png"));
+	}
+
+	@Test
+	public void StringMatchTest() throws Exception {
+
+		String testString = "/session/{sessionId}/user/{userId}/";
+
+		String[] tokens = testString.split("\\{\\w+\\}");
+
+		for(int i = 0; i < tokens.length; ++i)
+			System.out.println(tokens[i]);
+
+		assertThat(tokens[0], is("/session/"));
 	}
 }

@@ -3,6 +3,21 @@
  */
 package net.anyflow.menton.http;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -17,26 +32,6 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.CharsetUtil;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import net.anyflow.menton.http.HttpConstants.HeaderValues;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
 /**
  * @author anyflow
  */
@@ -46,6 +41,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 	private Channel channel;
 	private final Map<String, List<String>> parameters;
+	private final Map<String, String> pathParameters;
 	private final URI uri;
 	private final Set<Cookie> cookies;
 
@@ -60,6 +56,10 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	 * @throws URISyntaxException
 	 */
 	public HttpRequest(Channel channel, FullHttpRequest fullHttpRequest) throws URISyntaxException {
+		this(channel, fullHttpRequest, new HashMap<String, String>());
+	}
+
+	public HttpRequest(Channel channel, FullHttpRequest fullHttpRequest, Map<String, String> pathParameters) throws URISyntaxException {
 		super(fullHttpRequest.getProtocolVersion(), fullHttpRequest.getMethod(), fullHttpRequest.getUri(), fullHttpRequest.content().copy());
 
 		this.channel = channel;
@@ -70,6 +70,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		this.parameters = parameters();
 		this.cookies = cookies();
+		this.pathParameters = pathParameters;
 	}
 
 	private URI createUriWithNormalizing(String uri) throws URISyntaxException {
@@ -96,9 +97,6 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		return new URI(scheme, temp.getUserInfo(), temp.getHost(), port, temp.getPath(), temp.getQuery(), temp.getFragment());
 	}
 
-	/**
-	 * @return
-	 */
 	public Set<Cookie> cookies() {
 		if(cookies != null) { return cookies; }
 
@@ -113,6 +111,14 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		else {
 			return ret;
 		}
+	}
+
+	public Map<String, String> pathParameters() {
+		return pathParameters;
+	}
+
+	public String pathParameter(String name) {
+		return pathParameters.get(name);
 	}
 
 	public Map<String, List<String>> parameters() {
@@ -131,31 +137,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 			ret.putAll((new QueryStringDecoder("/dummy?" + content().toString(CharsetUtil.UTF_8))).parameters());
 		}
-		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE)
-				&& headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HeaderValues.APPLICATION_JSON)
-				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
 
-			String json = content().toString(CharsetUtil.UTF_8);
-
-			try {
-				JSONObject obj = new JSONObject(json);
-
-				Iterator<?> itr = obj.keys();
-				while(itr.hasNext()) {
-					String key = itr.next().toString();
-					if(ret.containsKey(key)) {
-						ret.get(key).add(obj.get(key).toString());
-					}
-					else {
-						ret.put(key, Lists.newArrayList(obj.get(key).toString()));
-					}
-				}
-			}
-			catch(JSONException e) {
-				logger.error(e.getMessage(), e);
-			}
-		}
-		
 		return ret;
 	}
 
@@ -193,14 +175,10 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		return channel;
 	}
 
-	public void setChannel(Channel channel) {
+	public void channel(Channel channel) {
 		this.channel = channel;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see io.netty.handler.codec.http.DefaultHttpRequest#toString()
-	 */
 	@Override
 	public String toString() {
 

@@ -45,7 +45,7 @@ public class HttpClientHandler extends SimpleChannelInboundHandler<FullHttpRespo
 		}
 
 		if(receiver != null) {
-			request.setChannel(ctx.channel());
+			request.channel(ctx.channel());
 			receiver.messageReceived(request, response);
 		}
 

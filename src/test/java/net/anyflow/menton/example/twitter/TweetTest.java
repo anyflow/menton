@@ -3,15 +3,8 @@ package net.anyflow.menton.example.twitter;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import io.netty.handler.codec.http.HttpHeaders.Names;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.util.CharsetUtil;
 
 import java.net.URISyntaxException;
-
-import net.anyflow.menton.http.HttpClient;
-import net.anyflow.menton.http.HttpConstants.HeaderValues;
-import net.anyflow.menton.http.HttpResponse;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,6 +15,13 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import com.jayway.jsonpath.JsonPath;
+
+import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.CharsetUtil;
+import net.anyflow.menton.http.HttpClient;
+import net.anyflow.menton.http.HttpConstants.HeaderValues;
+import net.anyflow.menton.http.HttpResponse;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TweetTest extends ApiTestCase {
@@ -80,8 +80,7 @@ public class TweetTest extends ApiTestCase {
 	@Test
 	public void test3_GET() throws UnsupportedOperationException, URISyntaxException {
 
-		HttpClient client = new HttpClient(address);
-		client.httpRequest().addParameter("id", tweetId);
+		HttpClient client = new HttpClient(address + "/" + tweetId);
 		HttpResponse response = client.get();
 
 		assertThat(response.getStatus(), is(HttpResponseStatus.OK));
@@ -145,8 +144,7 @@ public class TweetTest extends ApiTestCase {
 
 		assertThat(response.getStatus(), is(HttpResponseStatus.OK));
 
-		client = new HttpClient(address);
-		client.httpRequest().addParameter("id", tweetId);
+		client = new HttpClient(address + "/" + tweetId);
 
 		response = client.get();
 

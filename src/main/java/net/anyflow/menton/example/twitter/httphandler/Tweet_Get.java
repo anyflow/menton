@@ -9,14 +9,14 @@ import net.anyflow.menton.http.RequestHandler;
 /**
  * @author Park Hyunjeong
  */
-@RequestHandler.Handles(paths = { "twitter/tweet" }, httpMethods = { "GET" })
+@RequestHandler.Handles(paths = { "twitter/tweet/{id}" }, httpMethods = { "GET" })
 public class Tweet_Get extends RequestHandler {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Tweet_Get.class);
-	
+
 	@Override
 	public String call() {
-		String id = httpRequest().parameter("id");
+		String id = httpRequest().pathParameter("id");
 		if(id == null) {
 			httpResponse().setStatus(HttpResponseStatus.FORBIDDEN);
 			return MessageGenerator.generateJson(new Error("Invalid id"), httpResponse());
@@ -25,7 +25,7 @@ public class Tweet_Get extends RequestHandler {
 		Tweet tweet = Database.instance().get(id);
 		if(tweet == null) {
 			logger.error("id parameter required.");
-			
+
 			httpResponse().setStatus(HttpResponseStatus.FORBIDDEN);
 			return MessageGenerator.generateJson(new Error("Invalid id"), httpResponse());
 		}
