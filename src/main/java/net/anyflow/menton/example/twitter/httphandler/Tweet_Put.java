@@ -23,10 +23,10 @@ import net.anyflow.menton.http.RequestHandler;
 public class Tweet_Put extends RequestHandler {
 
 	@Override
-	public String call() {
+	public String service() {
 		String message;
 
-		if(HeaderValues.APPLICATION_JSON.equals(httpRequest().headers().get(Names.CONTENT_TYPE))) {
+		if (HeaderValues.APPLICATION_JSON.equals(httpRequest().headers().get(Names.CONTENT_TYPE))) {
 			String content = httpRequest().content().toString(CharsetUtil.UTF_8);
 			message = JsonPath.read(content, "$.message").toString();
 		}
@@ -34,7 +34,7 @@ public class Tweet_Put extends RequestHandler {
 			message = httpRequest().parameter("message");
 		}
 
-		if(message == null) {
+		if (message == null) {
 			httpResponse().setStatus(HttpResponseStatus.FORBIDDEN);
 
 			MessageGenerator.generateJson(new Error("Invalid message"), httpResponse());
@@ -53,7 +53,7 @@ public class Tweet_Put extends RequestHandler {
 			json.put("id", id);
 			return json.toString();
 		}
-		catch(JSONException e) {
+		catch (JSONException e) {
 			httpResponse().setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			return null;
 		}

@@ -15,15 +15,15 @@ public class Tweet_Get extends RequestHandler {
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Tweet_Get.class);
 
 	@Override
-	public String call() {
+	public String service() {
 		String id = httpRequest().pathParameter("id");
-		if(id == null) {
+		if (id == null) {
 			httpResponse().setStatus(HttpResponseStatus.FORBIDDEN);
 			return MessageGenerator.generateJson(new Error("Invalid id"), httpResponse());
 		}
 
 		Tweet tweet = Database.instance().get(id);
-		if(tweet == null) {
+		if (tweet == null) {
 			logger.error("id parameter required.");
 
 			httpResponse().setStatus(HttpResponseStatus.FORBIDDEN);

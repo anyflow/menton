@@ -17,7 +17,8 @@ import com.google.inject.internal.Lists;
 import net.anyflow.menton.Configurator;
 
 /**
- * Base class for request handler. The class contains common stuffs for generating business logic.
+ * Base class for request handler. The class contains common stuffs for
+ * generating business logic.
  * 
  * @author anyflow
  */
@@ -55,7 +56,7 @@ public abstract class RequestHandler {
 	/**
 	 * @return processed response body string
 	 */
-	public abstract String call();
+	public abstract String service();
 
 	public void initialize(HttpRequest request, HttpResponse response) throws URISyntaxException {
 		this.request = request;
@@ -71,21 +72,21 @@ public abstract class RequestHandler {
 	}
 
 	public String[] handlingHttpMethods() {
-		if(annotation == null) {
+		if (annotation == null) {
 			annotation = this.getClass().getAnnotation(RequestHandler.Handles.class);
 		}
 
-		if(annotation == null) { return null; }
+		if (annotation == null) { return null; }
 
 		return annotation.httpMethods();
 	}
 
 	public String[] handlingPaths() {
-		if(annotation == null) {
+		if (annotation == null) {
 			annotation = this.getClass().getAnnotation(RequestHandler.Handles.class);
 		}
 
-		if(annotation == null) { return null; }
+		if (annotation == null) { return null; }
 
 		return annotation.paths();
 	}
@@ -102,39 +103,40 @@ public abstract class RequestHandler {
 	 */
 	public static MatchedCriterion findRequestHandler(String requestedPath, String httpMethod) {
 
-		for(String criterion : handlerClassMap.keySet()) {
+		for (String criterion : handlerClassMap.keySet()) {
 			MatchedCriterion mc = match(requestedPath, httpMethod, criterion);
 
-			if(mc.result == true) {
+			if (mc.result == true) {
 				mc.requestHandlerClass = handlerClassMap.get(criterion);
 				return mc;
 			}
 		}
 
-		if(requestHandlerClasses == null) {
+		if (requestHandlerClasses == null) {
 			requestHandlerClasses = (new Reflections(requestHandlerPakcageRoot)).getSubTypesOf(RequestHandler.class);
 		}
 
-		for(Class<? extends RequestHandler> item : requestHandlerClasses) {
+		for (Class<? extends RequestHandler> item : requestHandlerClasses) {
 
 			RequestHandler.Handles annotation = item.getAnnotation(RequestHandler.Handles.class);
 
-			if(annotation == null) {
+			if (annotation == null) {
 				continue;
 			}
 
-			for(String method : annotation.httpMethods()) {
-				if(method.equalsIgnoreCase(httpMethod) == false) {
+			for (String method : annotation.httpMethods()) {
+				if (method.equalsIgnoreCase(httpMethod) == false) {
 					continue;
 				}
 
-				for(String rawPath : annotation.paths()) {
+				for (String rawPath : annotation.paths()) {
 
-					String path = (rawPath.charAt(0) == '/') ? rawPath : Configurator.instance().httpContextRoot() + rawPath;
+					String path = (rawPath.charAt(0) == '/') ? rawPath
+							: Configurator.instance().httpContextRoot() + rawPath;
 					String criterion = path + "/" + method;
 
 					MatchedCriterion mc = match(requestedPath, method, criterion);
-					if(mc.result == false) {
+					if (mc.result == false) {
 						continue;
 					}
 
@@ -183,13 +185,16 @@ public abstract class RequestHandler {
 		List<String> testTokens = Lists.newArrayList(requestedPath.split("/"));
 		testTokens.add(httpMethod);
 
-		if(criterionTokens.length != testTokens.size()) { return ret; }
+		if (criterionTokens.length != testTokens.size()) { return ret; }
 
-		for(int i = 1; i < criterionTokens.length; ++i) { // should start with #1 due to item[0] is whitespace.
-			if(criterionTokens[i].startsWith("{") && criterionTokens[i].endsWith("}")) {
-				ret.pathParameters.put(criterionTokens[i].substring(1, criterionTokens[i].length() - 1), testTokens.get(i));
+		for (int i = 1; i < criterionTokens.length; ++i) { // should start with
+															// #1 due to item[0]
+															// is whitespace.
+			if (criterionTokens[i].startsWith("{") && criterionTokens[i].endsWith("}")) {
+				ret.pathParameters.put(criterionTokens[i].substring(1, criterionTokens[i].length() - 1),
+						testTokens.get(i));
 			}
-			else if(criterionTokens[i].equalsIgnoreCase(testTokens.get(i)) == false) { return ret; }
+			else if (criterionTokens[i].equalsIgnoreCase(testTokens.get(i)) == false) { return ret; }
 		}
 
 		ret.result = true;

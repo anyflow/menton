@@ -47,8 +47,8 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 	private boolean isWebResourcePath(String path) {
 
-		for(String ext : Configurator.instance().webResourceExtensionToMimes().keySet()) {
-			if(path.endsWith("." + ext) == false) {
+		for (String ext : Configurator.instance().webResourceExtensionToMimes().keySet()) {
+			if (path.endsWith("." + ext) == false) {
 				continue;
 			}
 			return true;
@@ -59,55 +59,62 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 	/*
 	 * (non-Javadoc)
-	 * @see io.netty.channel.SimpleChannelInboundHandler#channelRead0(io.netty.channel.ChannelHandlerContext, java.lang.Object)
+	 * 
+	 * @see io.netty.channel.SimpleChannelInboundHandler#channelRead0(io.netty.
+	 * channel.ChannelHandlerContext, java.lang.Object)
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
 
-		if(msg instanceof FullHttpRequest) {
-			FullHttpRequest request = (FullHttpRequest)msg;
+		if (msg instanceof FullHttpRequest) {
+			FullHttpRequest request = (FullHttpRequest) msg;
 
-			if("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade")) && "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
-				if(webSocketFrameHandler == null) { throw new IllegalStateException("webSocketFrameHandler not found"); }
+			if ("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade"))
+					&& "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
+				if (webSocketFrameHandler == null) { throw new IllegalStateException(
+						"webSocketFrameHandler not found"); }
 
-				webSocketHandshaker = (new DefaultWebSocketHandshaker(webSocketFrameHandler.subprotocols())).handshake(ctx, request);
+				webSocketHandshaker = (new DefaultWebSocketHandshaker(webSocketFrameHandler.subprotocols()))
+						.handshake(ctx, request);
 				return;
 			}
 		}
-		else if(msg instanceof WebSocketFrame) {
-			if(webSocketHandshaker == null) { throw new IllegalStateException("WebSocketServerHandshaker shouldn't be null"); }
-			if(webSocketFrameHandler == null) { throw new IllegalStateException("webSocketFrameHandler not found"); }
+		else if (msg instanceof WebSocketFrame) {
+			if (webSocketHandshaker == null) { throw new IllegalStateException(
+					"WebSocketServerHandshaker shouldn't be null"); }
+			if (webSocketFrameHandler == null) { throw new IllegalStateException("webSocketFrameHandler not found"); }
 
-			webSocketFrameHandler.handle(webSocketHandshaker, ctx, (WebSocketFrame)msg);
+			webSocketFrameHandler.handle(webSocketHandshaker, ctx, (WebSocketFrame) msg);
 			return;
 		}
 		else {
 			return;
 		}
 
-		FullHttpRequest rawRequest = (FullHttpRequest)msg;
+		FullHttpRequest rawRequest = (FullHttpRequest) msg;
 
-		if(HttpHeaders.is100ContinueExpected(rawRequest)) {
+		if (HttpHeaders.is100ContinueExpected(rawRequest)) {
 			ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));
 			return;
 		}
 
-		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(), rawRequest.headers().get(HttpHeaders.Names.COOKIE));
+		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(),
+				rawRequest.headers().get(HttpHeaders.Names.COOKIE));
 
 		String requestPath = new URI(rawRequest.getUri()).getPath();
 
-		if(isWebResourcePath(requestPath)) {
+		if (isWebResourcePath(requestPath)) {
 			handleWebResourceRequest(response, requestPath);
 		}
 		else {
 			try {
 				processRequest(ctx.channel(), rawRequest, response);
 			}
-			catch(URISyntaxException e) {
+			catch (URISyntaxException e) {
 				response.setStatus(HttpResponseStatus.NOT_FOUND);
 				logger.info("unexcepted URI : {}", rawRequest.getUri());
 			}
-			catch(Exception e) {
+			catch (Exception e) {
 				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
 				logger.error("Unknown exception was thrown in business logic handler.\r\n" + e.getMessage(), e);
 			}
@@ -115,7 +122,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 		setDefaultHeaders(rawRequest, response);
 
-		if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpResponse"))) {
+		if ("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpResponse"))) {
 			logger.info(response.toString());
 		}
 
@@ -130,17 +137,18 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 	private void handleWebResourceRequest(HttpResponse response, String webResourceRequestPath) throws IOException {
 		InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(webResourceRequestPath);
 
-		if(is == null) {
-			String rootPath = (new File(Configurator.instance().WebResourcePhysicalRootPath(), webResourceRequestPath)).getPath();
+		if (is == null) {
+			String rootPath = (new File(Configurator.instance().WebResourcePhysicalRootPath(), webResourceRequestPath))
+					.getPath();
 			try {
 				is = new FileInputStream(rootPath);
 			}
-			catch(FileNotFoundException e) {
+			catch (FileNotFoundException e) {
 				is = null;
 			}
 		}
 
-		if(is == null) {
+		if (is == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
 		}
 		else {
@@ -149,7 +157,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			int nRead;
 			byte[] data = new byte[16384];
 
-			while((nRead = is.read(data, 0, data.length)) != -1) {
+			while ((nRead = is.read(data, 0, data.length)) != -1) {
 				buffer.write(data, 0, nRead);
 			}
 
@@ -168,11 +176,12 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		response.headers().add(Names.SERVER, Environment.PROJECT_ARTIFACT_ID + " " + Environment.PROJECT_VERSION);
 
 		boolean keepAlive = request.headers().get(HttpHeaders.Names.CONNECTION) == HttpHeaders.Values.KEEP_ALIVE;
-		if(keepAlive) {
+		if (keepAlive) {
 			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		if(Configurator.instance().getProperty("menton.httpServer.allowCrossDomain", "false").equalsIgnoreCase("true")) {
+		if (Configurator.instance().getProperty("menton.httpServer.allowCrossDomain", "false")
+				.equalsIgnoreCase("true")) {
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, PUT, DELETE");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
@@ -188,7 +197,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		RequestHandler.MatchedCriterion mc = RequestHandler.findRequestHandler((new URI(rawRequest.getUri())).getPath(),
 				rawRequest.getMethod().toString());
 
-		if(mc.requestHandlerClass() == null) {
+		if (mc.requestHandlerClass() == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
 			logger.info("unexcepted URI : {}", rawRequest.getUri());
 
@@ -203,11 +212,11 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 			handler.initialize(request, response);
 
-			if("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpRequest"))) {
+			if ("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpRequest"))) {
 				logger.info(request.toString());
 			}
 
-			response.setContent(handler.call());
+			response.setContent(handler.service());
 		}
 	}
 

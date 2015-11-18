@@ -14,7 +14,7 @@ import net.anyflow.menton.http.RequestHandler;
 public class List extends RequestHandler {
 
 	@Override
-	public String call() {
+	public String service() {
 		Collection<Tweet> tweets = Database.instance().list();
 
 		return MessageGenerator.generateJson(tweets, httpResponse());

@@ -13,15 +13,15 @@ import net.anyflow.menton.http.RequestHandler;
 public class Tweet_Delete extends RequestHandler {
 
 	@Override
-	public String call() {
+	public String service() {
 		String id = httpRequest().parameter("id");
-		if(id == null) {
+		if (id == null) {
 			httpResponse().setStatus(HttpResponseStatus.FORBIDDEN);
 			return MessageGenerator.generateJson(new Error("Invalid id"), httpResponse());
 		}
 
 		Tweet tweet = Database.instance().delete(id);
-		if(tweet == null) {
+		if (tweet == null) {
 			httpResponse().setStatus(HttpResponseStatus.FORBIDDEN);
 			return MessageGenerator.generateJson(new Error("Invalid id"), httpResponse());
 		}
