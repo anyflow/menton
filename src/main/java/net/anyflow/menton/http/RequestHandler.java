@@ -31,8 +31,6 @@ public abstract class RequestHandler {
 	private HttpRequest request;
 	private HttpResponse response;
 
-	private RequestHandler.Handles annotation;
-
 	/**
 	 * @author anyflow
 	 */
@@ -58,7 +56,7 @@ public abstract class RequestHandler {
 	 */
 	public abstract String service();
 
-	public void initialize(HttpRequest request, HttpResponse response) throws URISyntaxException {
+	protected void initialize(HttpRequest request, HttpResponse response) throws URISyntaxException {
 		this.request = request;
 		this.response = response;
 	}
@@ -71,26 +69,6 @@ public abstract class RequestHandler {
 		return response;
 	}
 
-	public String[] handlingHttpMethods() {
-		if (annotation == null) {
-			annotation = this.getClass().getAnnotation(RequestHandler.Handles.class);
-		}
-
-		if (annotation == null) { return null; }
-
-		return annotation.httpMethods();
-	}
-
-	public String[] handlingPaths() {
-		if (annotation == null) {
-			annotation = this.getClass().getAnnotation(RequestHandler.Handles.class);
-		}
-
-		if (annotation == null) { return null; }
-
-		return annotation.paths();
-	}
-
 	public static void setRequestHandlerPakcageRoot(String requestHandlerPakcageRoot) {
 		RequestHandler.requestHandlerPakcageRoot = requestHandlerPakcageRoot;
 	}
@@ -101,7 +79,7 @@ public abstract class RequestHandler {
 	 * @param requestHandlerPackageRoot
 	 * @return
 	 */
-	public static MatchedCriterion findRequestHandler(String requestedPath, String httpMethod) {
+	protected static MatchedCriterion findRequestHandler(String requestedPath, String httpMethod) {
 
 		for (String criterion : handlerClassMap.keySet()) {
 			MatchedCriterion mc = match(requestedPath, httpMethod, criterion);
@@ -151,7 +129,7 @@ public abstract class RequestHandler {
 		return new MatchedCriterion();
 	}
 
-	public static class MatchedCriterion {
+	protected static class MatchedCriterion {
 
 		private boolean result;
 		private Class<? extends RequestHandler> requestHandlerClass;

@@ -3,6 +3,13 @@
  */
 package net.anyflow.menton.http;
 
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.primitives.Ints;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -16,15 +23,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.ServerCookieEncoder;
 import io.netty.util.CharsetUtil;
-
-import java.util.Set;
-
 import net.anyflow.menton.Configurator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.primitives.Ints;
 
 /**
  * @author anyflow
@@ -33,20 +32,18 @@ public class HttpResponse extends DefaultFullHttpResponse {
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpResponse.class);
 
-	private final Channel channel;
+	public static HttpResponse createServerDefault(String requestCookie) {
 
-	public static HttpResponse createServerDefault(Channel channel, String requestCookie) {
-
-		HttpResponse ret = new HttpResponse(channel, HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.buffer());
+		HttpResponse ret = new HttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.buffer());
 
 		ret.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=UTF-8");
 
 		// Set request cookies
-		if(requestCookie != null) {
+		if (requestCookie != null) {
 			Set<Cookie> cookies = CookieDecoder.decode(requestCookie);
-			if(!cookies.isEmpty()) {
+			if (!cookies.isEmpty()) {
 				// Reset the cookies if necessary.
-				for(Cookie cookie : cookies) {
+				for (Cookie cookie : cookies) {
 					ret.headers().add(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.encode(cookie));
 				}
 			}
@@ -56,7 +53,7 @@ public class HttpResponse extends DefaultFullHttpResponse {
 	}
 
 	public static HttpResponse createFrom(FullHttpResponse source, Channel channel) {
-		HttpResponse ret = new HttpResponse(channel, source.getProtocolVersion(), source.getStatus(), source.content().copy());
+		HttpResponse ret = new HttpResponse(source.getProtocolVersion(), source.getStatus(), source.content().copy());
 
 		ret.headers().set(source.headers());
 		ret.trailingHeaders().set(source.trailingHeaders());
@@ -68,18 +65,12 @@ public class HttpResponse extends DefaultFullHttpResponse {
 	 * @param version
 	 * @param status
 	 */
-	private HttpResponse(Channel channel, HttpVersion version, HttpResponseStatus status, ByteBuf content) {
+	private HttpResponse(HttpVersion version, HttpResponseStatus status, ByteBuf content) {
 		super(version, status, content);
-
-		this.channel = channel;
-	}
-
-	public Channel channel() {
-		return channel;
 	}
 
 	public void setContent(String content) {
-		if(content == null) {
+		if (content == null) {
 			content = "";
 		}
 
@@ -96,16 +87,19 @@ public class HttpResponse extends DefaultFullHttpResponse {
 		buf.append("Version: " + this.getProtocolVersion()).append("\r\n");
 		buf.append("Response Headers: ").append("\r\n");
 
-		if(!this.headers().isEmpty()) {
-			for(String name : this.headers().names()) {
-				for(String value : this.headers().getAll(name)) {
+		if (!this.headers().isEmpty()) {
+			for (String name : this.headers().names()) {
+				for (String value : this.headers().getAll(name)) {
 					buf.append("   ").append(name).append(" = ").append(value).append("\r\n");
 				}
 			}
 		}
 
-		if("false".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.logWebResourceHttpResponseContent", "false"))
-				&& Configurator.instance().webResourceExtensionToMimes().containsValue(headers().get(Names.CONTENT_TYPE))) {
+		if ("false"
+				.equalsIgnoreCase(Configurator.instance()
+						.getProperty("menton.logging.logWebResourceHttpResponseContent", "false"))
+				&& Configurator.instance().webResourceExtensionToMimes()
+						.containsValue(headers().get(Names.CONTENT_TYPE))) {
 			buf.append("Content: WEB RESOURCE CONTENT");
 			return buf.toString();
 		}
@@ -114,12 +108,13 @@ public class HttpResponse extends DefaultFullHttpResponse {
 
 		int size = Ints.tryParse(Configurator.instance().getProperty("menton.logging.httpResponseContentSize", "100"));
 
-		if(size < 0) {
+		if (size < 0) {
 			buf.append("Content:\r\n   ").append(content);
 		}
 		else {
 			int index = content.length() < size ? content.length() : size - 1;
-			buf.append("The first " + size + " character(s) of response content:\r\n   ").append(content.substring(0, index));
+			buf.append("The first " + size + " character(s) of response content:\r\n   ")
+					.append(content.substring(0, index));
 		}
 
 		return buf.toString();

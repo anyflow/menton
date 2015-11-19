@@ -20,7 +20,6 @@ import com.google.common.collect.Maps;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
 import io.netty.handler.codec.DecoderResult;
 import io.netty.handler.codec.http.ClientCookieEncoder;
 import io.netty.handler.codec.http.Cookie;
@@ -39,30 +38,20 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpRequest.class);
 
-	private Channel channel;
 	private final Map<String, List<String>> parameters;
 	private final Map<String, String> pathParameters;
 	private final URI uri;
 	private final Set<Cookie> cookies;
 
-	/**
-	 * @param channel
-	 * @param httpVersion
-	 * @param method
-	 * @param uri
-	 * @param content
-	 * @param headers
-	 * @param decoderResult
-	 * @throws URISyntaxException
-	 */
-	public HttpRequest(Channel channel, FullHttpRequest fullHttpRequest) throws URISyntaxException {
-		this(channel, fullHttpRequest, new HashMap<String, String>());
+	protected HttpRequest(FullHttpRequest fullHttpRequest) throws URISyntaxException {
+		this(fullHttpRequest, new HashMap<String, String>());
 	}
 
-	public HttpRequest(Channel channel, FullHttpRequest fullHttpRequest, Map<String, String> pathParameters) throws URISyntaxException {
-		super(fullHttpRequest.getProtocolVersion(), fullHttpRequest.getMethod(), fullHttpRequest.getUri(), fullHttpRequest.content().copy());
+	protected HttpRequest(FullHttpRequest fullHttpRequest, Map<String, String> pathParameters)
+			throws URISyntaxException {
+		super(fullHttpRequest.getProtocolVersion(), fullHttpRequest.getMethod(), fullHttpRequest.getUri(),
+				fullHttpRequest.content().copy());
 
-		this.channel = channel;
 		this.headers().set(fullHttpRequest.headers());
 		this.trailingHeaders().set(fullHttpRequest.trailingHeaders());
 		this.setDecoderResult(fullHttpRequest.getDecoderResult());
@@ -77,16 +66,16 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		URI temp = new URI(uri);
 
 		String scheme = temp.getScheme();
-		if(scheme == null) {
+		if (scheme == null) {
 			scheme = "http";
 		}
 
 		int port = temp.getPort();
-		if(port == -1) {
-			if(scheme.equalsIgnoreCase("http")) {
+		if (port == -1) {
+			if (scheme.equalsIgnoreCase("http")) {
 				port = 80;
 			}
-			else if(scheme.equalsIgnoreCase("https")) {
+			else if (scheme.equalsIgnoreCase("https")) {
 				port = 443;
 			}
 			else {
@@ -94,18 +83,19 @@ public class HttpRequest extends DefaultFullHttpRequest {
 			}
 		}
 
-		return new URI(scheme, temp.getUserInfo(), temp.getHost(), port, temp.getPath(), temp.getQuery(), temp.getFragment());
+		return new URI(scheme, temp.getUserInfo(), temp.getHost(), port, temp.getPath(), temp.getQuery(),
+				temp.getFragment());
 	}
 
 	public Set<Cookie> cookies() {
-		if(cookies != null) { return cookies; }
+		if (cookies != null) { return cookies; }
 
 		String cookie = headers().get(HttpHeaders.Names.COOKIE);
-		if(cookie == null || "".equals(cookie)) { return new HashSet<Cookie>(); }
+		if (cookie == null || "".equals(cookie)) { return new HashSet<Cookie>(); }
 
 		Set<Cookie> ret = CookieDecoder.decode(cookie);
 
-		if(ret.isEmpty()) {
+		if (ret.isEmpty()) {
 			return new HashSet<Cookie>();
 		}
 		else {
@@ -123,16 +113,17 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 	public Map<String, List<String>> parameters() {
 
-		if(parameters != null) { return parameters; }
+		if (parameters != null) { return parameters; }
 
 		Map<String, List<String>> ret = Maps.newHashMap();
 
-		if(HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
+		if (HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
 			ret.putAll((new QueryStringDecoder(getUri())).parameters());
 			return ret;
 		}
-		else if(headers().contains(HttpHeaders.Names.CONTENT_TYPE)
-				&& headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
+		else if (headers().contains(HttpHeaders.Names.CONTENT_TYPE)
+				&& headers().get(HttpHeaders.Names.CONTENT_TYPE)
+						.startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
 				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
 
 			ret.putAll((new QueryStringDecoder("/dummy?" + content().toString(CharsetUtil.UTF_8))).parameters());
@@ -142,15 +133,17 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	}
 
 	/**
-	 * Get single parameter. In case of multiple values, the method returns the first.
+	 * Get single parameter. In case of multiple values, the method returns the
+	 * first.
 	 * 
 	 * @param name
 	 *            parameter name.
-	 * @return The first value of the parameter name. If it does not exist, it returns null.
+	 * @return The first value of the parameter name. If it does not exist, it
+	 *         returns null.
 	 */
 	public String parameter(String name) {
 
-		if(parameters().containsKey(name) == false || parameters.get(name).size() <= 0) { return null; }
+		if (parameters().containsKey(name) == false || parameters.get(name).size() <= 0) { return null; }
 
 		return parameters().get(name).get(0);
 	}
@@ -158,7 +151,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	public HttpRequest addParameter(String name, String value) {
 
 		List<String> values = parameters().get(name);
-		if(values == null) {
+		if (values == null) {
 			values = new ArrayList<String>();
 			values.add(value);
 			parameters().put(name, values);
@@ -169,14 +162,6 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		}
 
 		return this;
-	}
-
-	public Channel channel() {
-		return channel;
-	}
-
-	public void channel(Channel channel) {
-		this.channel = channel;
 	}
 
 	@Override
@@ -191,8 +176,8 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		buf.append("Request Headers:").append("\r\n");
 
 		List<Entry<String, String>> headers = this.headers().entries();
-		if(!headers.isEmpty()) {
-			for(Entry<String, String> h : this.headers().entries()) {
+		if (!headers.isEmpty()) {
+			for (Entry<String, String> h : this.headers().entries()) {
 				String key = h.getKey();
 				String value = h.getValue();
 				buf.append("   ").append(key).append(" = ").append(value).append("\r\n");
@@ -203,21 +188,21 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		buf.append("Query String Parameters: ");
 
-		if(params.isEmpty()) {
+		if (params.isEmpty()) {
 			buf.append("NONE\r\n");
 		}
 		else {
-			for(Entry<String, List<String>> p : params.entrySet()) {
+			for (Entry<String, List<String>> p : params.entrySet()) {
 				String key = p.getKey();
 				List<String> vals = p.getValue();
-				for(String val : vals) {
+				for (String val : vals) {
 					buf.append("\r\n   ").append(key).append(" = ").append(val).append("\r\n");
 				}
 			}
 		}
 
 		buf.append("Content: ");
-		if(this.content().isReadable()) {
+		if (this.content().isReadable()) {
 			buf.append("\r\n   ").append(content().toString(CharsetUtil.UTF_8));
 		}
 		else {
@@ -226,7 +211,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		DecoderResult result = this.getDecoderResult();
 
-		if(result.isSuccess() == false) {
+		if (result.isSuccess() == false) {
 			buf.append("\r\n").append(".. WITH DECODER FAILURE:");
 			buf.append("\r\n   ").append(result.cause());
 		}
@@ -235,7 +220,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	}
 
 	public void setContent(String content) {
-		if(content == null) {
+		if (content == null) {
 			content = "";
 		}
 
@@ -249,7 +234,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		return uri;
 	}
 
-	public void normalize() {
+	protected void normalize() {
 		normalizeParameters();
 
 		headers().set(HttpHeaders.Names.COOKIE, ClientCookieEncoder.encode(cookies));
@@ -259,17 +244,17 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		StringBuilder builder = new StringBuilder();
 
-		for(String name : parameters().keySet()) {
+		for (String name : parameters().keySet()) {
 
-			for(String value : parameters().get(name)) {
+			for (String value : parameters().get(name)) {
 				builder = builder.append(name).append("=").append(value).append("&");
 			}
 		}
 
 		String ret = builder.toString();
-		if(ret.length() <= 0) { return ""; }
+		if (ret.length() <= 0) { return ""; }
 
-		if(ret.charAt(ret.length() - 1) == '&') {
+		if (ret.charAt(ret.length() - 1) == '&') {
 			return ret.substring(0, ret.length() - 1);
 		}
 		else {
@@ -278,15 +263,16 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	}
 
 	private void normalizeParameters() {
-		String address = (new StringBuilder()).append(uri().getScheme()).append("://").append(uri().getAuthority()).append(uri().getPath())
-				.toString();
+		String address = (new StringBuilder()).append(uri().getScheme()).append("://").append(uri().getAuthority())
+				.append(uri().getPath()).toString();
 
-		if(HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
+		if (HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
 			address += "?" + convertParametersToString();
 		}
-		else if(HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod())) {
-			if(headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false
-					|| headers().get(HttpHeaders.Names.CONTENT_TYPE).startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)) {
+		else if (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod())) {
+			if (headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false
+					|| headers().get(HttpHeaders.Names.CONTENT_TYPE)
+							.startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)) {
 				ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), CharsetUtil.UTF_8);
 
 				headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());

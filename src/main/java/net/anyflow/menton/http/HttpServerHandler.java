@@ -37,11 +37,11 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 	private final WebSocketFrameHandler webSocketFrameHandler;
 	private WebSocketServerHandshaker webSocketHandshaker = null;
 
-	public HttpServerHandler() {
+	protected HttpServerHandler() {
 		webSocketFrameHandler = null;
 	}
 
-	public HttpServerHandler(WebSocketFrameHandler webSocketFrameHandler) {
+	protected HttpServerHandler(WebSocketFrameHandler webSocketFrameHandler) {
 		this.webSocketFrameHandler = webSocketFrameHandler;
 	}
 
@@ -98,8 +98,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			return;
 		}
 
-		HttpResponse response = HttpResponse.createServerDefault(ctx.channel(),
-				rawRequest.headers().get(HttpHeaders.Names.COOKIE));
+		HttpResponse response = HttpResponse.createServerDefault(rawRequest.headers().get(HttpHeaders.Names.COOKIE));
 
 		String requestPath = new URI(rawRequest.getUri()).getPath();
 
@@ -206,7 +205,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			response.setContent(HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus()));
 		}
 		else {
-			HttpRequest request = new HttpRequest(channel, rawRequest, mc.pathParameters());
+			HttpRequest request = new HttpRequest(rawRequest, mc.pathParameters());
 
 			RequestHandler handler = mc.requestHandlerClass().newInstance();
 

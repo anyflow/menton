@@ -3,6 +3,11 @@
  */
 package net.anyflow.menton.http;
 
+import java.net.URISyntaxException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -16,11 +21,6 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.concurrent.DefaultThreadFactory;
-
-import java.net.URISyntaxException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author anyflow
@@ -36,9 +36,9 @@ public class HttpClient {
 
 		bootstrap = new Bootstrap();
 
-		httpRequest = new HttpRequest(null, new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri));
+		httpRequest = new HttpRequest(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri));
 
-		if(httpRequest().uri().getScheme().equalsIgnoreCase("http") == false) {
+		if (httpRequest().uri().getScheme().equalsIgnoreCase("http") == false) {
 			String message = "HTTP is supported only.";
 			logger.error(message);
 			throw new UnsupportedOperationException(message);
@@ -99,7 +99,8 @@ public class HttpClient {
 	 * request.
 	 * 
 	 * @param receiver
-	 * @return if receiver is not null the request processed successfully, returns HttpResponse instance, otherwise null.
+	 * @return if receiver is not null the request processed successfully,
+	 *         returns HttpResponse instance, otherwise null.
 	 */
 	private HttpResponse request(final MessageReceiver receiver) {
 
@@ -108,20 +109,22 @@ public class HttpClient {
 		httpRequest().normalize();
 		setDefaultHeaders();
 
-		if(logger.isDebugEnabled()) {
+		if (logger.isDebugEnabled()) {
 			logger.debug(httpRequest().toString());
 		}
 
 		HttpClientHandler clientHandler = new HttpClientHandler(receiver, httpRequest);
 
 		final EventLoopGroup group = new NioEventLoopGroup(1, new DefaultThreadFactory("client"));
-		bootstrap.group(group).channel(NioSocketChannel.class).handler(new ClientChannelInitializer(clientHandler, ssl));
+		bootstrap.group(group).channel(NioSocketChannel.class)
+				.handler(new ClientChannelInitializer(clientHandler, ssl));
 
 		try {
-			Channel channel = bootstrap.connect(httpRequest().uri().getHost(), httpRequest().uri().getPort()).sync().channel();
+			Channel channel = bootstrap.connect(httpRequest().uri().getHost(), httpRequest().uri().getPort()).sync()
+					.channel();
 			channel.writeAndFlush(httpRequest);
 
-			if(receiver == null) {
+			if (receiver == null) {
 				channel.closeFuture().sync();
 				group.shutdownGracefully();
 
@@ -139,7 +142,7 @@ public class HttpClient {
 				return null;
 			}
 		}
-		catch(Exception e) {
+		catch (Exception e) {
 			group.shutdownGracefully();
 			logger.error(e.getMessage(), e);
 
@@ -148,20 +151,22 @@ public class HttpClient {
 	}
 
 	private void setDefaultHeaders() {
-		if(httpRequest().headers().contains(HttpHeaders.Names.HOST) == false) {
+		if (httpRequest().headers().contains(HttpHeaders.Names.HOST) == false) {
 			httpRequest().headers().set(HttpHeaders.Names.HOST, httpRequest().uri().getHost());
 		}
-		if(httpRequest().headers().contains(HttpHeaders.Names.CONNECTION) == false) {
+		if (httpRequest().headers().contains(HttpHeaders.Names.CONNECTION) == false) {
 			httpRequest().headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
-		if(httpRequest().headers().contains(HttpHeaders.Names.ACCEPT_ENCODING) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP + ", " + HttpHeaders.Values.DEFLATE);
+		if (httpRequest().headers().contains(HttpHeaders.Names.ACCEPT_ENCODING) == false) {
+			httpRequest().headers().set(HttpHeaders.Names.ACCEPT_ENCODING,
+					HttpHeaders.Values.GZIP + ", " + HttpHeaders.Values.DEFLATE);
 		}
-		if(httpRequest().headers().contains(HttpHeaders.Names.ACCEPT_CHARSET) == false) {
+		if (httpRequest().headers().contains(HttpHeaders.Names.ACCEPT_CHARSET) == false) {
 			httpRequest().headers().set(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
 		}
-		if(httpRequest().headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
+		if (httpRequest().headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
+			httpRequest().headers().set(HttpHeaders.Names.CONTENT_TYPE,
+					HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
 		}
 	}
 }
