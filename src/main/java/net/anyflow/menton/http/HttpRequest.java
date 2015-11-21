@@ -16,6 +16,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 
 import io.netty.buffer.ByteBuf;
@@ -267,7 +268,8 @@ public class HttpRequest extends DefaultFullHttpRequest {
 				.append(uri().getPath()).toString();
 
 		if (HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
-			address += "?" + convertParametersToString();
+			String parameters = convertParametersToString();
+			address += Strings.isNullOrEmpty(parameters) ? "" : "?" + parameters;
 		}
 		else if (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod())) {
 			if (headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false
