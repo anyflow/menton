@@ -32,8 +32,6 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpServerHandler.class);
 
-	private static final String FAILED_TO_FIND_REQUEST_HANDLER = "Failed to find the request handler.";
-
 	private final WebSocketFrameHandler webSocketFrameHandler;
 	private WebSocketServerHandshaker webSocketHandshaker = null;
 
@@ -202,7 +200,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 			response.headers().add(Names.CONTENT_TYPE, "text/html");
 
-			response.setContent(HtmlGenerator.error(FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus()));
+			response.setContent(HtmlGenerator.error(Literals.FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus()));
 		}
 		else {
 			HttpRequest request = new HttpRequest(rawRequest, mc.pathParameters());

@@ -16,6 +16,7 @@ import org.junit.Test;
 
 import io.netty.handler.codec.http.QueryStringDecoder;
 import net.anyflow.menton.http.HttpClient;
+import net.anyflow.menton.http.IHttpClient;
 
 /**
  * @author anyflow
@@ -55,7 +56,7 @@ public class UtilityTest {
 	public void testURIport() throws Exception {
 
 		String uriString = "http://10.0.0.1/getporttest";
-		HttpClient client = new HttpClient(uriString);
+		IHttpClient client = new HttpClient(uriString);
 
 		assertThat(client.httpRequest().uri().getPort(), is(80));
 	}
@@ -64,7 +65,7 @@ public class UtilityTest {
 	public void testContentTypeWwwFormUrlEncodedWithUtf8() throws Exception {
 
 		String uriString = "http://10.0.0.1/getporttest";
-		HttpClient client = new HttpClient(uriString);
+		IHttpClient client = new HttpClient(uriString);
 
 		assertThat(client.httpRequest().uri().getPort(), is(80));
 	}

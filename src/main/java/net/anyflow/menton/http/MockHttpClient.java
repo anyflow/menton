@@ -1,6 +1,3 @@
-/**
- * 
- */
 package net.anyflow.menton.http;
 
 import java.net.URISyntaxException;
@@ -8,35 +5,22 @@ import java.net.URISyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.util.concurrent.DefaultThreadFactory;
 
-/**
- * @author anyflow
- */
-public class HttpClient implements IHttpClient {
+public class MockHttpClient implements IHttpClient {
 
-	static final Logger logger = LoggerFactory.getLogger(HttpClient.class);
+	static final Logger logger = LoggerFactory.getLogger(MockHttpClient.class);
 
-	final Bootstrap bootstrap;
 	private final HttpRequest httpRequest;
+	private final MockHttpServer mockServer;
 
-	public HttpClient(String uri) throws URISyntaxException, UnsupportedOperationException {
-
-		bootstrap = new Bootstrap();
-
-		httpRequest = new HttpRequest(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri));
+	public MockHttpClient(MockHttpServer mockServer, String uri) throws URISyntaxException {
+		this.httpRequest = new HttpRequest(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri));
+		this.mockServer = mockServer;
 
 		if (httpRequest().uri().getScheme().equalsIgnoreCase("http") == false) {
 			String message = "HTTP is supported only.";
@@ -45,7 +29,9 @@ public class HttpClient implements IHttpClient {
 		}
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#httpRequest()
 	 */
 	@Override
@@ -53,7 +39,9 @@ public class HttpClient implements IHttpClient {
 		return httpRequest;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#get()
 	 */
 	@Override
@@ -61,8 +49,11 @@ public class HttpClient implements IHttpClient {
 		return get(null);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#get(net.anyflow.menton.http.MessageReceiver)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.anyflow.menton.http.I#get(net.anyflow.menton.http.MessageReceiver)
 	 */
 	@Override
 	public HttpResponse get(final MessageReceiver receiver) {
@@ -71,7 +62,9 @@ public class HttpClient implements IHttpClient {
 		return request(receiver);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#post()
 	 */
 	@Override
@@ -79,8 +72,11 @@ public class HttpClient implements IHttpClient {
 		return post(null);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#post(net.anyflow.menton.http.MessageReceiver)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.anyflow.menton.http.I#post(net.anyflow.menton.http.MessageReceiver)
 	 */
 	@Override
 	public HttpResponse post(final MessageReceiver receiver) {
@@ -89,7 +85,9 @@ public class HttpClient implements IHttpClient {
 		return request(receiver);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#put()
 	 */
 	@Override
@@ -97,8 +95,11 @@ public class HttpClient implements IHttpClient {
 		return put(null);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#put(net.anyflow.menton.http.MessageReceiver)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.anyflow.menton.http.I#put(net.anyflow.menton.http.MessageReceiver)
 	 */
 	@Override
 	public HttpResponse put(final MessageReceiver receiver) {
@@ -107,7 +108,9 @@ public class HttpClient implements IHttpClient {
 		return request(receiver);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#delete()
 	 */
 	@Override
@@ -115,8 +118,11 @@ public class HttpClient implements IHttpClient {
 		return delete(null);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#delete(net.anyflow.menton.http.MessageReceiver)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.anyflow.menton.http.I#delete(net.anyflow.menton.http.MessageReceiver)
 	 */
 	@Override
 	public HttpResponse delete(final MessageReceiver receiver) {
@@ -125,14 +131,10 @@ public class HttpClient implements IHttpClient {
 		return request(receiver);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#setOption(io.netty.channel.ChannelOption, T)
-	 */
 	@Override
 	public <T> IHttpClient setOption(ChannelOption<T> option, T value) {
-		bootstrap.option(option, value);
-
-		return this;
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -144,8 +146,6 @@ public class HttpClient implements IHttpClient {
 	 */
 	private HttpResponse request(final MessageReceiver receiver) {
 
-		boolean ssl = false;
-
 		httpRequest().normalize();
 		setDefaultHeaders();
 
@@ -153,40 +153,13 @@ public class HttpClient implements IHttpClient {
 			logger.debug(httpRequest().toString());
 		}
 
-		HttpClientHandler clientHandler = new HttpClientHandler(receiver, httpRequest);
-
-		final EventLoopGroup group = new NioEventLoopGroup(1, new DefaultThreadFactory("client"));
-		bootstrap.group(group).channel(NioSocketChannel.class)
-				.handler(new ClientChannelInitializer(clientHandler, ssl));
-
-		try {
-			Channel channel = bootstrap.connect(httpRequest().uri().getHost(), httpRequest().uri().getPort()).sync()
-					.channel();
-			channel.writeAndFlush(httpRequest);
-
-			if (receiver == null) {
-				channel.closeFuture().sync();
-				group.shutdownGracefully();
-
-				return clientHandler.httpResponse();
-			}
-			else {
-				channel.closeFuture().addListener(new ChannelFutureListener() {
-
-					@Override
-					public void operationComplete(ChannelFuture future) throws Exception {
-						group.shutdownGracefully();
-					}
-				});
-
-				return null;
-			}
-		}
-		catch (Exception e) {
-			group.shutdownGracefully();
-			logger.error(e.getMessage(), e);
-
+		HttpResponse response = mockServer.service(httpRequest());
+		if (receiver != null) {
+			receiver.messageReceived(httpRequest(), response);
 			return null;
+		}
+		else {
+			return response;
 		}
 	}
 

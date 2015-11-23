@@ -22,6 +22,7 @@ import io.netty.util.CharsetUtil;
 import net.anyflow.menton.http.HttpClient;
 import net.anyflow.menton.http.HttpConstants.HeaderValues;
 import net.anyflow.menton.http.HttpResponse;
+import net.anyflow.menton.http.IHttpClient;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TweetTest extends ApiTestCase {
@@ -43,7 +44,7 @@ public class TweetTest extends ApiTestCase {
 	@Test
 	public void test1_PUT() throws UnsupportedOperationException, URISyntaxException {
 
-		HttpClient client = new HttpClient(address);
+		IHttpClient client = new HttpClient(address);
 		client.httpRequest().addParameter("message", message);
 
 		HttpResponse response = client.put();
@@ -60,7 +61,7 @@ public class TweetTest extends ApiTestCase {
 	@Test
 	public void test2_PUT_JSON() throws UnsupportedOperationException, URISyntaxException, JSONException {
 
-		HttpClient client = new HttpClient(address);
+		IHttpClient client = new HttpClient(address);
 		client.httpRequest().headers().set(Names.CONTENT_TYPE, HeaderValues.APPLICATION_JSON);
 
 		JSONObject obj = new JSONObject();
@@ -80,7 +81,7 @@ public class TweetTest extends ApiTestCase {
 	@Test
 	public void test3_GET() throws UnsupportedOperationException, URISyntaxException {
 
-		HttpClient client = new HttpClient(address + "/" + tweetId);
+		IHttpClient client = new HttpClient(address + "/" + tweetId);
 		HttpResponse response = client.get();
 
 		assertThat(response.getStatus(), is(HttpResponseStatus.OK));
@@ -96,7 +97,7 @@ public class TweetTest extends ApiTestCase {
 
 		String updatedMessage = "updated message";
 
-		HttpClient client = new HttpClient(address);
+		IHttpClient client = new HttpClient(address);
 		client.httpRequest().addParameter("id", tweetId);
 		client.httpRequest().addParameter("message", updatedMessage);
 
@@ -115,7 +116,7 @@ public class TweetTest extends ApiTestCase {
 
 		String updatedMessage = "the second updated message";
 
-		HttpClient client = new HttpClient(address);
+		IHttpClient client = new HttpClient(address);
 		client.httpRequest().headers().set(Names.CONTENT_TYPE, HeaderValues.APPLICATION_JSON);
 
 		JSONObject obj = new JSONObject();
@@ -137,7 +138,7 @@ public class TweetTest extends ApiTestCase {
 	@Test
 	public void test6_DELETE() throws UnsupportedOperationException, URISyntaxException {
 
-		HttpClient client = new HttpClient(address);
+		IHttpClient client = new HttpClient(address);
 		client.httpRequest().addParameter("id", tweetId);
 
 		HttpResponse response = client.delete();

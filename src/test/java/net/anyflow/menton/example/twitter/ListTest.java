@@ -9,6 +9,7 @@ import java.util.List;
 
 import net.anyflow.menton.http.HttpClient;
 import net.anyflow.menton.http.HttpResponse;
+import net.anyflow.menton.http.IHttpClient;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -41,7 +42,7 @@ public class ListTest extends ApiTestCase {
 	@Test
 	public void test() throws UnsupportedOperationException, URISyntaxException {
 
-		HttpClient client = new HttpClient(address);
+		IHttpClient client = new HttpClient(address);
 
 		HttpResponse response = client.get();
 
