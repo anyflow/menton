@@ -3,8 +3,7 @@
  */
 package net.anyflow.menton;
 
-import io.netty.handler.logging.LogLevel;
-
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -15,6 +14,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.google.common.collect.Maps;
+
+import io.netty.handler.logging.LogLevel;
 
 /**
  * @author anyflow
@@ -27,7 +28,7 @@ public class Configurator extends java.util.Properties {
 	private static Configurator instance;
 
 	public static Configurator instance() {
-		if(instance == null) {
+		if (instance == null) {
 			instance = new Configurator();
 		}
 
@@ -39,12 +40,12 @@ public class Configurator extends java.util.Properties {
 	public int getInt(String key, int defaultValue) {
 		String valueString = this.getProperty(key);
 
-		if(valueString == null) { return defaultValue; }
+		if (valueString == null) { return defaultValue; }
 
 		try {
 			return Integer.parseInt(valueString);
 		}
-		catch(NumberFormatException e) {
+		catch (NumberFormatException e) {
 			return defaultValue;
 		}
 	}
@@ -67,14 +68,14 @@ public class Configurator extends java.util.Properties {
 	private void initialize(Reader propertyReader, InputStream propertyInputStream) throws IOException {
 
 		try {
-			if(propertyReader != null) {
+			if (propertyReader != null) {
 				load(propertyReader);
 			}
-			else if(propertyInputStream != null) {
+			else if (propertyInputStream != null) {
 				load(propertyInputStream);
 			}
 		}
-		catch(java.io.IOException e) {
+		catch (java.io.IOException e) {
 			logger.error("Loading network properties failed.", e);
 			throw e;
 		}
@@ -86,12 +87,12 @@ public class Configurator extends java.util.Properties {
 			@SuppressWarnings("unchecked")
 			Iterator<String> keys = obj.keys();
 
-			while(keys.hasNext()) {
+			while (keys.hasNext()) {
 				String key = keys.next();
 				webResourceExtensionToMimes.put(key, obj.get(key).toString());
 			}
 		}
-		catch(JSONException e) {
+		catch (JSONException e) {
 			logger.error(e.getMessage(), e);
 		}
 	}
@@ -100,11 +101,37 @@ public class Configurator extends java.util.Properties {
 		return webResourceExtensionToMimes;
 	}
 
+	public static Integer tryParse(String text) {
+		try {
+			return Integer.parseInt(text);
+		}
+		catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
 	/**
-	 * @return http port
+	 * @return HTTP port. If empty, returns null(the channel will not be
+	 *         established).
 	 */
-	public int httpPort() {
-		return Integer.parseInt(getProperty("menton.httpServer.port", "8090"));
+	public Integer httpPort() {
+		return tryParse(getProperty("menton.httpServer.http.port", null));
+	}
+
+	/**
+	 * @return HTTPS port. If empty, returns null(the channel will not be
+	 *         established).
+	 */
+	public Integer httpsPort() {
+		return tryParse(getProperty("menton.httpServer.https.port", null));
+	}
+
+	public File certChainFile() {
+		return new File(getProperty("menton.httpServer.https.certChainFilePath", null));
+	}
+
+	public File privateKeyFile() {
+		return new File(getProperty("menton.httpServer.https.privateKeyFilePath", null));
 	}
 
 	/**
@@ -113,7 +140,7 @@ public class Configurator extends java.util.Properties {
 	public String httpContextRoot() {
 		String ret = getProperty("menton.httpServer.contextRoot", "/");
 
-		if(ret.equalsIgnoreCase("") || ret.charAt(ret.length() - 1) != '/') {
+		if (ret.equalsIgnoreCase("") || ret.charAt(ret.length() - 1) != '/') {
 			ret += "/";
 		}
 
@@ -129,16 +156,16 @@ public class Configurator extends java.util.Properties {
 	}
 
 	public LogLevel logLevel() {
-		if(logger.isTraceEnabled()) {
+		if (logger.isTraceEnabled()) {
 			return LogLevel.TRACE;
 		}
-		else if(logger.isDebugEnabled()) {
+		else if (logger.isDebugEnabled()) {
 			return LogLevel.DEBUG;
 		}
-		else if(logger.isInfoEnabled()) {
+		else if (logger.isInfoEnabled()) {
 			return LogLevel.INFO;
 		}
-		else if(logger.isWarnEnabled()) {
+		else if (logger.isWarnEnabled()) {
 			return LogLevel.WARN;
 		}
 		else {

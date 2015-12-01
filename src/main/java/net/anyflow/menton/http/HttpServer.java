@@ -8,18 +8,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.HttpContentCompressor;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import net.anyflow.menton.Configurator;
 import net.anyflow.menton.general.TaskCompletionInformer;
@@ -57,8 +48,8 @@ public class HttpServer implements TaskCompletionInformer {
 	 *            root package prefix of request handlers.
 	 * @return the HTTP channel
 	 */
-	public Channel start(String requestHandlerPakcageRoot) {
-		return start(requestHandlerPakcageRoot, null);
+	public void start(String requestHandlerPakcageRoot) {
+		start(requestHandlerPakcageRoot, null);
 	}
 
 	/**
@@ -68,50 +59,32 @@ public class HttpServer implements TaskCompletionInformer {
 	 *            websocket handler
 	 * @return the HTTP channel
 	 */
-	public Channel start(String requestHandlerPakcageRoot, final WebSocketFrameHandler webSocketFrameHandler) {
+	public void start(String requestHandlerPakcageRoot, final WebSocketFrameHandler webSocketFrameHandler) {
 		RequestHandler.setRequestHandlerPakcageRoot(requestHandlerPakcageRoot);
 		try {
-			ServerBootstrap bootstrap = new ServerBootstrap();
+			if (Configurator.instance().httpPort() != null) {
+				ServerBootstrap bootstrap = new ServerBootstrap();
 
-			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
-					.childHandler(new ChannelInitializer<SocketChannel>() {
+				bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
+						.childHandler(new HttpServerChannelInitializer(webSocketFrameHandler, false));
 
-						@Override
-						protected void initChannel(SocketChannel ch) throws Exception {
-							// ChannelHandler adding order is 'very' important.
-							// HttpServerHandler should be added last after
-							// outbound handlers in spite of it is inbound
-							// handler.
-							// Otherwise, outbound handlers will not be handled.
+				bootstrap.bind(Configurator.instance().httpPort()).sync();
+			}
 
-							if ("true".equalsIgnoreCase(
-									Configurator.instance().getProperty("menton.logging.writelogOfNettyLogger"))) {
-								ch.pipeline().addLast("log",
-										new LoggingHandler("menton/server", Configurator.instance().logLevel()));
-							}
+			if (Configurator.instance().httpsPort() != null) {
+				ServerBootstrap bootstrap = new ServerBootstrap();
 
-							ch.pipeline().addLast("decoder", new HttpRequestDecoder());
-							ch.pipeline().addLast("encoder", new HttpResponseEncoder());
-							ch.pipeline().addLast("aggregato", new HttpObjectAggregator(1048576)); // Handle
-																									// HttpChunks.
-							ch.pipeline().addLast("deflater", new HttpContentCompressor()); // Automatic
-																							// content
-																							// compression.
-							ch.pipeline().addLast("bizHandler", new HttpServerHandler(webSocketFrameHandler));
-						}
-					});
+				bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
+						.childHandler(new HttpServerChannelInitializer(webSocketFrameHandler, true));
 
-			ChannelFuture channelFuture = bootstrap.bind(Configurator.instance().httpPort()).sync();
+				bootstrap.bind(Configurator.instance().httpPort()).sync();
+			}
 
 			logger.info("Menton HTTP server started.");
-
-			return channelFuture.channel();
 		}
-		catch (InterruptedException e) {
+		catch (Exception e) {
 			logger.error("Menton HTTP server failed to start...", e);
 			shutdown();
-
-			return null;
 		}
 	}
 

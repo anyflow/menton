@@ -1,15 +1,9 @@
 package net.anyflow.menton.example.twitter;
 
 import static org.junit.Assert.assertTrue;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.util.CharsetUtil;
 
 import java.net.URISyntaxException;
 import java.util.List;
-
-import net.anyflow.menton.http.HttpClient;
-import net.anyflow.menton.http.HttpResponse;
-import net.anyflow.menton.http.IHttpClient;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -19,6 +13,13 @@ import org.junit.runners.MethodSorters;
 
 import com.jayway.jsonpath.JsonPath;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.CharsetUtil;
+import net.anyflow.menton.Configurator;
+import net.anyflow.menton.http.HttpClient;
+import net.anyflow.menton.http.HttpResponse;
+import net.anyflow.menton.http.IHttpClient;
+
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ListTest extends ApiTestCase {
 
@@ -26,7 +27,7 @@ public class ListTest extends ApiTestCase {
 	public static void setup() throws UnsupportedOperationException, URISyntaxException {
 		TweetTest tt = new TweetTest();
 
-		for(int i = 0; i < count; ++i) {
+		for (int i = 0; i < count; ++i) {
 			tt.test1_PUT();
 		}
 	}
@@ -36,7 +37,7 @@ public class ListTest extends ApiTestCase {
 
 	}
 
-	final String address = "http://localhost:" + ApiTestSuite.server().port() + "/twitter/list";
+	final String address = "http://localhost:" + Configurator.instance().httpPort() + "/twitter/list";
 	final static int count = 100;
 
 	@Test

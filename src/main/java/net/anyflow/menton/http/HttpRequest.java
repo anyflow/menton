@@ -22,14 +22,14 @@ import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.DecoderResult;
-import io.netty.handler.codec.http.ClientCookieEncoder;
-import io.netty.handler.codec.http.Cookie;
-import io.netty.handler.codec.http.CookieDecoder;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.handler.codec.http.cookie.ClientCookieEncoder;
+import io.netty.handler.codec.http.cookie.Cookie;
+import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.netty.util.CharsetUtil;
 
 /**
@@ -94,7 +94,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		String cookie = headers().get(HttpHeaders.Names.COOKIE);
 		if (cookie == null || "".equals(cookie)) { return new HashSet<Cookie>(); }
 
-		Set<Cookie> ret = CookieDecoder.decode(cookie);
+		Set<Cookie> ret = ServerCookieDecoder.STRICT.decode(cookie);
 
 		if (ret.isEmpty()) {
 			return new HashSet<Cookie>();
@@ -238,7 +238,10 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	protected void normalize() {
 		normalizeParameters();
 
-		headers().set(HttpHeaders.Names.COOKIE, ClientCookieEncoder.encode(cookies));
+		String encoded = ClientCookieEncoder.STRICT.encode(cookies);
+		if (encoded == null) { return; }
+
+		headers().set(HttpHeaders.Names.COOKIE, encoded);
 	}
 
 	private String convertParametersToString() {

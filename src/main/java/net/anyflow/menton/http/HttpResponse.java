@@ -13,15 +13,15 @@ import com.google.common.primitives.Ints;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.handler.codec.http.Cookie;
-import io.netty.handler.codec.http.CookieDecoder;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.ServerCookieEncoder;
+import io.netty.handler.codec.http.cookie.ClientCookieEncoder;
+import io.netty.handler.codec.http.cookie.Cookie;
+import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.netty.util.CharsetUtil;
 import net.anyflow.menton.Configurator;
 
@@ -38,15 +38,14 @@ public class HttpResponse extends DefaultFullHttpResponse {
 
 		ret.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=UTF-8");
 
-		// Set request cookies
-		if (requestCookie != null) {
-			Set<Cookie> cookies = CookieDecoder.decode(requestCookie);
-			if (!cookies.isEmpty()) {
-				// Reset the cookies if necessary.
-				for (Cookie cookie : cookies) {
-					ret.headers().add(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.encode(cookie));
-				}
-			}
+		if (requestCookie == null) { return ret; }
+
+		Set<Cookie> cookies = ServerCookieDecoder.STRICT.decode(requestCookie);
+		if (cookies.isEmpty()) { return ret; }
+
+		// Reset the cookies if necessary.
+		for (Cookie cookie : cookies) {
+			ret.headers().add(HttpHeaders.Names.SET_COOKIE, ClientCookieEncoder.STRICT.encode(cookie));
 		}
 
 		return ret;

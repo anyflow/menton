@@ -45,7 +45,9 @@ public class HttpClient implements IHttpClient {
 		}
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#httpRequest()
 	 */
 	@Override
@@ -53,7 +55,9 @@ public class HttpClient implements IHttpClient {
 		return httpRequest;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#get()
 	 */
 	@Override
@@ -61,8 +65,11 @@ public class HttpClient implements IHttpClient {
 		return get(null);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#get(net.anyflow.menton.http.MessageReceiver)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.anyflow.menton.http.I#get(net.anyflow.menton.http.MessageReceiver)
 	 */
 	@Override
 	public HttpResponse get(final MessageReceiver receiver) {
@@ -71,7 +78,9 @@ public class HttpClient implements IHttpClient {
 		return request(receiver);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#post()
 	 */
 	@Override
@@ -79,8 +88,11 @@ public class HttpClient implements IHttpClient {
 		return post(null);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#post(net.anyflow.menton.http.MessageReceiver)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.anyflow.menton.http.I#post(net.anyflow.menton.http.MessageReceiver)
 	 */
 	@Override
 	public HttpResponse post(final MessageReceiver receiver) {
@@ -89,7 +101,9 @@ public class HttpClient implements IHttpClient {
 		return request(receiver);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#put()
 	 */
 	@Override
@@ -97,8 +111,11 @@ public class HttpClient implements IHttpClient {
 		return put(null);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#put(net.anyflow.menton.http.MessageReceiver)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.anyflow.menton.http.I#put(net.anyflow.menton.http.MessageReceiver)
 	 */
 	@Override
 	public HttpResponse put(final MessageReceiver receiver) {
@@ -107,7 +124,9 @@ public class HttpClient implements IHttpClient {
 		return request(receiver);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.anyflow.menton.http.I#delete()
 	 */
 	@Override
@@ -115,8 +134,11 @@ public class HttpClient implements IHttpClient {
 		return delete(null);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#delete(net.anyflow.menton.http.MessageReceiver)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.anyflow.menton.http.I#delete(net.anyflow.menton.http.MessageReceiver)
 	 */
 	@Override
 	public HttpResponse delete(final MessageReceiver receiver) {
@@ -125,8 +147,11 @@ public class HttpClient implements IHttpClient {
 		return request(receiver);
 	}
 
-	/* (non-Javadoc)
-	 * @see net.anyflow.menton.http.I#setOption(io.netty.channel.ChannelOption, T)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see net.anyflow.menton.http.I#setOption(io.netty.channel.ChannelOption,
+	 * T)
 	 */
 	@Override
 	public <T> IHttpClient setOption(ChannelOption<T> option, T value) {
