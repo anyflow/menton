@@ -9,7 +9,7 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import net.anyflow.menton.Configurator;
+import net.anyflow.menton.Settings;
 import net.anyflow.menton.Environment;
 
 public class MockHttpServer {
@@ -45,8 +45,7 @@ public class MockHttpServer {
 					handler = mc.requestHandlerClass().newInstance();
 					handler.initialize(request, response);
 
-					if ("true"
-							.equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpRequest"))) {
+					if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writeHttpRequest"))) {
 						logger.info(request.toString());
 					}
 
@@ -69,7 +68,7 @@ public class MockHttpServer {
 
 		setDefaultHeaders(httpRequest, response);
 
-		if ("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpResponse"))) {
+		if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writeHttpResponse"))) {
 			logger.info(response.toString());
 		}
 
@@ -85,8 +84,7 @@ public class MockHttpServer {
 			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		if (Configurator.instance().getProperty("menton.httpServer.allowCrossDomain", "false")
-				.equalsIgnoreCase("true")) {
+		if (Settings.SELF.getProperty("menton.httpServer.allowCrossDomain", "false").equalsIgnoreCase("true")) {
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, PUT, DELETE");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");

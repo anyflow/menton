@@ -23,7 +23,7 @@ import io.netty.handler.codec.http.cookie.ClientCookieEncoder;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.netty.util.CharsetUtil;
-import net.anyflow.menton.Configurator;
+import net.anyflow.menton.Settings;
 
 /**
  * @author anyflow
@@ -95,17 +95,15 @@ public class HttpResponse extends DefaultFullHttpResponse {
 		}
 
 		if ("false"
-				.equalsIgnoreCase(Configurator.instance()
-						.getProperty("menton.logging.logWebResourceHttpResponseContent", "false"))
-				&& Configurator.instance().webResourceExtensionToMimes()
-						.containsValue(headers().get(Names.CONTENT_TYPE))) {
+				.equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.logWebResourceHttpResponseContent", "false"))
+				&& Settings.SELF.webResourceExtensionToMimes().containsValue(headers().get(Names.CONTENT_TYPE))) {
 			buf.append("Content: WEB RESOURCE CONTENT");
 			return buf.toString();
 		}
 
 		String content = this.content().toString(CharsetUtil.UTF_8);
 
-		int size = Ints.tryParse(Configurator.instance().getProperty("menton.logging.httpResponseContentSize", "100"));
+		int size = Ints.tryParse(Settings.SELF.getProperty("menton.logging.httpResponseContentSize", "100"));
 
 		if (size < 0) {
 			buf.append("Content:\r\n   ").append(content);

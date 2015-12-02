@@ -12,7 +12,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.concurrent.DefaultThreadFactory;
-import net.anyflow.menton.Configurator;
+import net.anyflow.menton.Settings;
 import net.anyflow.menton.general.TaskCompletionInformer;
 import net.anyflow.menton.general.TaskCompletionListener;
 
@@ -29,9 +29,9 @@ public class HttpServer implements TaskCompletionInformer {
 	public HttpServer() {
 		taskCompletionListeners = Lists.newArrayList();
 
-		bossGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.bossThreadCount", 0),
+		bossGroup = new NioEventLoopGroup(Settings.SELF.getInt("menton.system.bossThreadCount", 0),
 				new DefaultThreadFactory("server/boss"));
-		workerGroup = new NioEventLoopGroup(Configurator.instance().getInt("menton.system.workerThreadCount", 0),
+		workerGroup = new NioEventLoopGroup(Settings.SELF.getInt("menton.system.workerThreadCount", 0),
 				new DefaultThreadFactory("server/worker"));
 	}
 
@@ -62,22 +62,22 @@ public class HttpServer implements TaskCompletionInformer {
 	public void start(String requestHandlerPakcageRoot, final WebSocketFrameHandler webSocketFrameHandler) {
 		RequestHandler.setRequestHandlerPakcageRoot(requestHandlerPakcageRoot);
 		try {
-			if (Configurator.instance().httpPort() != null) {
+			if (Settings.SELF.httpPort() != null) {
 				ServerBootstrap bootstrap = new ServerBootstrap();
 
 				bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
 						.childHandler(new HttpServerChannelInitializer(webSocketFrameHandler, false));
 
-				bootstrap.bind(Configurator.instance().httpPort()).sync();
+				bootstrap.bind(Settings.SELF.httpPort()).sync();
 			}
 
-			if (Configurator.instance().httpsPort() != null) {
+			if (Settings.SELF.httpsPort() != null) {
 				ServerBootstrap bootstrap = new ServerBootstrap();
 
 				bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
 						.childHandler(new HttpServerChannelInitializer(webSocketFrameHandler, true));
 
-				bootstrap.bind(Configurator.instance().httpPort()).sync();
+				bootstrap.bind(Settings.SELF.httpPort()).sync();
 			}
 
 			logger.info("Menton HTTP server started.");

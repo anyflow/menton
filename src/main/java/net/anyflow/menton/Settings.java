@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.security.cert.CertificateException;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -16,26 +17,30 @@ import org.json.JSONObject;
 import com.google.common.collect.Maps;
 
 import io.netty.handler.logging.LogLevel;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 
-/**
- * @author anyflow
- */
-public class Configurator extends java.util.Properties {
+public class Settings extends java.util.Properties {
 
 	private static final long serialVersionUID = 5431592702381235221L;
 
-	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Configurator.class);
-	private static Configurator instance;
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Settings.class);
+	public final static Settings SELF;
 
-	public static Configurator instance() {
-		if (instance == null) {
-			instance = new Configurator();
-		}
-
-		return instance;
+	static {
+		SELF = new Settings();
 	}
 
 	private Map<String, String> webResourceExtensionToMimes;
+	private SelfSignedCertificate ssc;
+
+	private Settings() {
+		try {
+			ssc = new SelfSignedCertificate();
+		}
+		catch (CertificateException e) {
+			logger.error(e.getMessage(), e);
+		}
+	}
 
 	public int getInt(String key, int defaultValue) {
 		String valueString = this.getProperty(key);
@@ -127,11 +132,15 @@ public class Configurator extends java.util.Properties {
 	}
 
 	public File certChainFile() {
-		return new File(getProperty("menton.httpServer.https.certChainFilePath", null));
+		String certFilePath = getProperty("menton.httpServer.https.certChainFilePath", null);
+
+		return "self".equalsIgnoreCase(certFilePath) ? ssc.certificate() : new File(certFilePath);
 	}
 
 	public File privateKeyFile() {
-		return new File(getProperty("menton.httpServer.https.privateKeyFilePath", null));
+		String privateKeyFilePath = getProperty("menton.httpServer.https.privateKeyFilePath", null);
+
+		return "self".equalsIgnoreCase(privateKeyFilePath) ? ssc.certificate() : new File(privateKeyFilePath);
 	}
 
 	/**

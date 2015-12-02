@@ -19,7 +19,7 @@ import com.jayway.jsonpath.JsonPath;
 import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.CharsetUtil;
-import net.anyflow.menton.Configurator;
+import net.anyflow.menton.Settings;
 import net.anyflow.menton.http.HttpClient;
 import net.anyflow.menton.http.HttpConstants.HeaderValues;
 import net.anyflow.menton.http.HttpResponse;
@@ -38,7 +38,7 @@ public class TweetTest extends ApiTestCase {
 
 	}
 
-	final String address = "http://localhost:" + Configurator.instance().httpPort() + "/twitter/tweet";
+	final String address = "http://localhost:" + Settings.SELF.httpPort() + "/twitter/tweet";
 	static String tweetId = null;
 	static String message = "Hello, menton-Twitter!";
 

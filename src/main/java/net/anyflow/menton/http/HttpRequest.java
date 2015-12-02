@@ -96,12 +96,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		Set<Cookie> ret = ServerCookieDecoder.STRICT.decode(cookie);
 
-		if (ret.isEmpty()) {
-			return new HashSet<Cookie>();
-		}
-		else {
-			return ret;
-		}
+		return ret == null || ret.isEmpty() ? new HashSet<Cookie>() : ret;
 	}
 
 	public Map<String, String> pathParameters() {

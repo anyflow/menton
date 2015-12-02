@@ -15,7 +15,7 @@ import com.jayway.jsonpath.JsonPath;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.CharsetUtil;
-import net.anyflow.menton.Configurator;
+import net.anyflow.menton.Settings;
 import net.anyflow.menton.http.HttpClient;
 import net.anyflow.menton.http.HttpResponse;
 import net.anyflow.menton.http.IHttpClient;
@@ -37,7 +37,7 @@ public class ListTest extends ApiTestCase {
 
 	}
 
-	final String address = "http://localhost:" + Configurator.instance().httpPort() + "/twitter/list";
+	final String address = "http://localhost:" + Settings.SELF.httpPort() + "/twitter/list";
 	final static int count = 100;
 
 	@Test

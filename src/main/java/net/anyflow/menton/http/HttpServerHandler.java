@@ -22,7 +22,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
-import net.anyflow.menton.Configurator;
+import net.anyflow.menton.Settings;
 import net.anyflow.menton.Environment;
 
 /**
@@ -45,7 +45,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 	private boolean isWebResourcePath(String path) {
 
-		for (String ext : Configurator.instance().webResourceExtensionToMimes().keySet()) {
+		for (String ext : Settings.SELF.webResourceExtensionToMimes().keySet()) {
 			if (path.endsWith("." + ext) == false) {
 				continue;
 			}
@@ -119,7 +119,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 		setDefaultHeaders(rawRequest, response);
 
-		if ("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpResponse"))) {
+		if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writeHttpResponse"))) {
 			logger.info(response.toString());
 		}
 
@@ -135,8 +135,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(webResourceRequestPath);
 
 		if (is == null) {
-			String rootPath = (new File(Configurator.instance().WebResourcePhysicalRootPath(), webResourceRequestPath))
-					.getPath();
+			String rootPath = (new File(Settings.SELF.WebResourcePhysicalRootPath(), webResourceRequestPath)).getPath();
 			try {
 				is = new FileInputStream(rootPath);
 			}
@@ -162,7 +161,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			response.content().writeBytes(buffer.toByteArray());
 
 			String ext = Files.getFileExtension(webResourceRequestPath);
-			response.headers().set(Names.CONTENT_TYPE, Configurator.instance().webResourceExtensionToMimes().get(ext));
+			response.headers().set(Names.CONTENT_TYPE, Settings.SELF.webResourceExtensionToMimes().get(ext));
 
 			is.close();
 		}
@@ -177,8 +176,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		if (Configurator.instance().getProperty("menton.httpServer.allowCrossDomain", "false")
-				.equalsIgnoreCase("true")) {
+		if (Settings.SELF.getProperty("menton.httpServer.allowCrossDomain", "false").equalsIgnoreCase("true")) {
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, PUT, DELETE");
 			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
@@ -209,7 +207,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 
 			handler.initialize(request, response);
 
-			if ("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writeHttpRequest"))) {
+			if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writeHttpRequest"))) {
 				logger.info(request.toString());
 			}
 

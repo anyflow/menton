@@ -8,7 +8,7 @@ import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import net.anyflow.menton.Configurator;
+import net.anyflow.menton.Settings;
 
 class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
@@ -28,8 +28,8 @@ class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 		// handler.
 		// Otherwise, outbound handlers will not be handled.
 
-		if ("true".equalsIgnoreCase(Configurator.instance().getProperty("menton.logging.writelogOfNettyLogger"))) {
-			ch.pipeline().addLast("log", new LoggingHandler("menton/server", Configurator.instance().logLevel()));
+		if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writelogOfNettyLogger"))) {
+			ch.pipeline().addLast("log", new LoggingHandler("menton/server", Settings.SELF.logLevel()));
 		}
 
 		// if (useSsl) {
@@ -47,8 +47,7 @@ class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 		// }
 
 		if (useSsl) {
-			SslContext sslCtx = SslContextBuilder
-					.forServer(Configurator.instance().certChainFile(), Configurator.instance().privateKeyFile())
+			SslContext sslCtx = SslContextBuilder.forServer(Settings.SELF.certChainFile(), Settings.SELF.privateKeyFile())
 					.build();
 
 			ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));

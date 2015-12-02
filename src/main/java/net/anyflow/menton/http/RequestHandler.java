@@ -14,7 +14,7 @@ import org.reflections.Reflections;
 import com.google.common.collect.Maps;
 import com.google.inject.internal.Lists;
 
-import net.anyflow.menton.Configurator;
+import net.anyflow.menton.Settings;
 
 /**
  * Base class for request handler. The class contains common stuffs for
@@ -109,8 +109,7 @@ public abstract class RequestHandler {
 
 				for (String rawPath : annotation.paths()) {
 
-					String path = (rawPath.charAt(0) == '/') ? rawPath
-							: Configurator.instance().httpContextRoot() + rawPath;
+					String path = (rawPath.charAt(0) == '/') ? rawPath : Settings.SELF.httpContextRoot() + rawPath;
 					String criterion = path + "/" + method;
 
 					MatchedCriterion mc = match(requestedPath, method, criterion);
