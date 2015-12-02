@@ -37,13 +37,13 @@ public class ListTest extends ApiTestCase {
 
 	}
 
-	final String address = "http://localhost:" + Settings.SELF.httpPort() + "/twitter/list";
-	final static int count = 100;
+	final String address = "https://localhost:" + Settings.SELF.httpsPort() + "/twitter/list";
+	final static int count = 5;
 
 	@Test
 	public void test() throws UnsupportedOperationException, URISyntaxException {
 
-		IHttpClient client = new HttpClient(address);
+		IHttpClient client = new HttpClient(address, true);
 
 		HttpResponse response = client.get();
 

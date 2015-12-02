@@ -77,7 +77,7 @@ public class HttpServer implements TaskCompletionInformer {
 				bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
 						.childHandler(new HttpServerChannelInitializer(webSocketFrameHandler, true));
 
-				bootstrap.bind(Settings.SELF.httpPort()).sync();
+				bootstrap.bind(Settings.SELF.httpsPort()).sync();
 			}
 
 			logger.info("Menton HTTP server started.");

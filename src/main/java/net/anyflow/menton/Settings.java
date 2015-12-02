@@ -140,7 +140,7 @@ public class Settings extends java.util.Properties {
 	public File privateKeyFile() {
 		String privateKeyFilePath = getProperty("menton.httpServer.https.privateKeyFilePath", null);
 
-		return "self".equalsIgnoreCase(privateKeyFilePath) ? ssc.certificate() : new File(privateKeyFilePath);
+		return "self".equalsIgnoreCase(privateKeyFilePath) ? ssc.privateKey() : new File(privateKeyFilePath);
 	}
 
 	/**
