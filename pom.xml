@@ -10,12 +10,34 @@
 	<description>menton REST server Framework/Runtime</description>
 	<url>https://github.com/anyflow/Menton</url>
 
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<version.template.file>src/main/resources/META-INF/Environment.template</version.template.file>
-		<version.file>src/main/java/net/anyflow/menton/Environment.java</version.file>
-	</properties>
-
+	<profiles>
+		<!-- Just for fixing compile time error on pom.xml -->
+		<profile>
+			<id>dummy.profile</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+				<version.template.file>src/main/resources/META-INF/Environment.template</version.template.file>
+				<version.file>src/main/java/net/anyflow/menton/Environment.java</version.file>
+				<netty-tcnative.classifier>osx-x86_64</netty-tcnative.classifier>
+			</properties>
+		</profile>
+	</profiles>
+	
+	<repositories>
+	  <repository>
+	    <id>bintray</id>
+	    <url>http://dl.bintray.com/andsel/maven/</url>
+	    <releases>
+	      <enabled>true</enabled>
+	    </releases>
+	    <snapshots>
+	      <enabled>false</enabled>
+	    </snapshots>
+	  </repository>
+	</repositories>
 
 	<dependencies>
 		<dependency>
@@ -63,7 +85,7 @@
 			<groupId>io.netty</groupId>
 			<artifactId>netty-tcnative</artifactId>
 			<version>1.1.33.Fork9</version>
-			<classifier>osx-x86_64</classifier>
+			<classifier>${netty-tcnative.classifier}</classifier>
 		</dependency>
 
 		<dependency>
@@ -165,19 +187,16 @@
 			<artifactId>jackson-module-jaxb-annotations</artifactId>
 			<version>2.6.2</version>
 		</dependency>
+		
+		<dependency>
+      		<groupId>io.moquette</groupId>
+      		<artifactId>moquette-broker</artifactId>
+      		<version>0.8</version>
+		</dependency>
 	</dependencies>
 
 	<build>
 		<finalName>${project.artifactId}-${project.version}-${git.commit.id.describe}</finalName>
-
-		<extensions>
-			<!-- For support openssl based Netty. Refer http://netty.io/wiki/forked-tomcat-native.html -->
-			<extension>
-				<groupId>kr.motd.maven</groupId>
-				<artifactId>os-maven-plugin</artifactId>
-				<version>1.2.3.Final</version>
-			</extension>
-		</extensions>
 
 		<plugins>
 			<plugin>

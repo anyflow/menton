@@ -12,12 +12,12 @@ import net.anyflow.menton.Settings;
 
 class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-	final WebSocketFrameHandler webSocketFrameHandler;
 	final boolean useSsl;
+	final WebsocketFrameHandler websocketFrameHandler;
 
-	public HttpServerChannelInitializer(WebSocketFrameHandler webSocketFrameHandler, boolean useSsl) {
-		this.webSocketFrameHandler = webSocketFrameHandler;
+	public HttpServerChannelInitializer(boolean useSsl, WebsocketFrameHandler websocketFrameHandler) {
 		this.useSsl = useSsl;
+		this.websocketFrameHandler = websocketFrameHandler;
 	}
 
 	@Override
@@ -47,8 +47,8 @@ class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 		// }
 
 		if (useSsl) {
-			SslContext sslCtx = SslContextBuilder.forServer(Settings.SELF.certChainFile(), Settings.SELF.privateKeyFile())
-					.build();
+			SslContext sslCtx = SslContextBuilder
+					.forServer(Settings.SELF.certChainFile(), Settings.SELF.privateKeyFile()).build();
 
 			ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
 		}
@@ -59,6 +59,10 @@ class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 		ch.pipeline().addLast("deflater", new HttpContentCompressor()); // Automatic
 																		// content
 																		// compression.
-		ch.pipeline().addLast("bizHandler", new HttpServerHandler(webSocketFrameHandler));
+		ch.pipeline().addLast(HttpRequestRouter.NAME, new HttpRequestRouter());
+
+		if (websocketFrameHandler != null) {
+			ch.pipeline().addLast(WebsocketFrameHandler.NAME, websocketFrameHandler);
+		}
 	}
 }

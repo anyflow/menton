@@ -20,31 +20,22 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
-import net.anyflow.menton.Settings;
 import net.anyflow.menton.Environment;
+import net.anyflow.menton.Settings;
 
 /**
  * @author anyflow
  */
-public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
+public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpRequest> {
 
-	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpServerHandler.class);
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpRequestRouter.class);
 
-	private final WebSocketFrameHandler webSocketFrameHandler;
-	private WebSocketServerHandshaker webSocketHandshaker = null;
+	public static final String NAME = "HttpRequestRouter";
 
-	protected HttpServerHandler() {
-		webSocketFrameHandler = null;
-	}
-
-	protected HttpServerHandler(WebSocketFrameHandler webSocketFrameHandler) {
-		this.webSocketFrameHandler = webSocketFrameHandler;
+	protected HttpRequestRouter() {
 	}
 
 	private boolean isWebResourcePath(String path) {
-
 		for (String ext : Settings.SELF.webResourceExtensionToMimes().keySet()) {
 			if (path.endsWith("." + ext) == false) {
 				continue;
@@ -62,54 +53,39 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 	 * channel.ChannelHandlerContext, java.lang.Object)
 	 */
 	@Override
-	protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+	protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
 
-		if (msg instanceof FullHttpRequest) {
-			FullHttpRequest request = (FullHttpRequest) msg;
+		if ("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade"))
+				&& "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
 
-			if ("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade"))
-					&& "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
-				if (webSocketFrameHandler == null) { throw new IllegalStateException(
-						"webSocketFrameHandler not found"); }
+			WebsocketFrameHandler wsfHandler = (WebsocketFrameHandler) ctx.channel().pipeline()
+					.get(WebsocketFrameHandler.NAME);
+			if (wsfHandler == null) { return; }
 
-				webSocketHandshaker = (new DefaultWebSocketHandshaker(webSocketFrameHandler.subprotocols()))
-						.handshake(ctx, request);
-				return;
-			}
-		}
-		else if (msg instanceof WebSocketFrame) {
-			if (webSocketHandshaker == null) { throw new IllegalStateException(
-					"WebSocketServerHandshaker shouldn't be null"); }
-			if (webSocketFrameHandler == null) { throw new IllegalStateException("webSocketFrameHandler not found"); }
-
-			webSocketFrameHandler.handle(webSocketHandshaker, ctx, (WebSocketFrame) msg);
-			return;
-		}
-		else {
+			wsfHandler.setWebsocketHandshaker(
+					(new DefaultWebSocketHandshaker(Settings.SELF.websocketSubprotocols())).handshake(ctx, request));
 			return;
 		}
 
-		FullHttpRequest rawRequest = (FullHttpRequest) msg;
-
-		if (HttpHeaders.is100ContinueExpected(rawRequest)) {
+		if (HttpHeaders.is100ContinueExpected(request)) {
 			ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));
 			return;
 		}
 
-		HttpResponse response = HttpResponse.createServerDefault(rawRequest.headers().get(HttpHeaders.Names.COOKIE));
+		HttpResponse response = HttpResponse.createServerDefault(request.headers().get(HttpHeaders.Names.COOKIE));
 
-		String requestPath = new URI(rawRequest.getUri()).getPath();
+		String requestPath = new URI(request.getUri()).getPath();
 
 		if (isWebResourcePath(requestPath)) {
 			handleWebResourceRequest(response, requestPath);
 		}
 		else {
 			try {
-				processRequest(ctx.channel(), rawRequest, response);
+				processRequest(ctx.channel(), request, response);
 			}
 			catch (URISyntaxException e) {
 				response.setStatus(HttpResponseStatus.NOT_FOUND);
-				logger.info("unexcepted URI : {}", rawRequest.getUri());
+				logger.info("unexcepted URI : {}", request.getUri());
 			}
 			catch (Exception e) {
 				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
@@ -117,7 +93,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 			}
 		}
 
-		setDefaultHeaders(rawRequest, response);
+		setDefaultHeaders(request, response);
 
 		if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writeHttpResponse"))) {
 			logger.info(response.toString());
@@ -189,8 +165,8 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 	private void processRequest(Channel channel, FullHttpRequest rawRequest, HttpResponse response)
 			throws InstantiationException, IllegalAccessException, IOException, URISyntaxException {
 
-		RequestHandler.MatchedCriterion mc = RequestHandler.findRequestHandler((new URI(rawRequest.getUri())).getPath(),
-				rawRequest.getMethod().toString());
+		HttpRequestHandler.MatchedCriterion mc = HttpRequestHandler
+				.findRequestHandler((new URI(rawRequest.getUri())).getPath(), rawRequest.getMethod().toString());
 
 		if (mc.requestHandlerClass() == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
@@ -203,7 +179,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 		else {
 			HttpRequest request = new HttpRequest(rawRequest, mc.pathParameters());
 
-			RequestHandler handler = mc.requestHandlerClass().newInstance();
+			HttpRequestHandler handler = mc.requestHandlerClass().newInstance();
 
 			handler.initialize(request, response);
 

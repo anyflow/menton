@@ -22,10 +22,10 @@ import net.anyflow.menton.Settings;
  * 
  * @author anyflow
  */
-public abstract class RequestHandler {
+public abstract class HttpRequestHandler {
 
-	private static final Map<String, Class<? extends RequestHandler>> handlerClassMap = Maps.newHashMap();
-	private static Set<Class<? extends RequestHandler>> requestHandlerClasses;
+	private static final Map<String, Class<? extends HttpRequestHandler>> handlerClassMap = Maps.newHashMap();
+	private static Set<Class<? extends HttpRequestHandler>> requestHandlerClasses;
 	private static String requestHandlerPakcageRoot;
 
 	private HttpRequest request;
@@ -70,7 +70,7 @@ public abstract class RequestHandler {
 	}
 
 	public static void setRequestHandlerPakcageRoot(String requestHandlerPakcageRoot) {
-		RequestHandler.requestHandlerPakcageRoot = requestHandlerPakcageRoot;
+		HttpRequestHandler.requestHandlerPakcageRoot = requestHandlerPakcageRoot;
 	}
 
 	/**
@@ -91,12 +91,12 @@ public abstract class RequestHandler {
 		}
 
 		if (requestHandlerClasses == null) {
-			requestHandlerClasses = (new Reflections(requestHandlerPakcageRoot)).getSubTypesOf(RequestHandler.class);
+			requestHandlerClasses = (new Reflections(requestHandlerPakcageRoot)).getSubTypesOf(HttpRequestHandler.class);
 		}
 
-		for (Class<? extends RequestHandler> item : requestHandlerClasses) {
+		for (Class<? extends HttpRequestHandler> item : requestHandlerClasses) {
 
-			RequestHandler.Handles annotation = item.getAnnotation(RequestHandler.Handles.class);
+			HttpRequestHandler.Handles annotation = item.getAnnotation(HttpRequestHandler.Handles.class);
 
 			if (annotation == null) {
 				continue;
@@ -131,12 +131,12 @@ public abstract class RequestHandler {
 	protected static class MatchedCriterion {
 
 		private boolean result;
-		private Class<? extends RequestHandler> requestHandlerClass;
+		private Class<? extends HttpRequestHandler> requestHandlerClass;
 		private String criterionPath;
 		private String criterionHttpMethod;
 		private final Map<String, String> pathParameters = Maps.newHashMap();
 
-		public Class<? extends RequestHandler> requestHandlerClass() {
+		public Class<? extends HttpRequestHandler> requestHandlerClass() {
 			return requestHandlerClass;
 		}
 

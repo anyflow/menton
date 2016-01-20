@@ -17,14 +17,14 @@ public class MockHttpServer {
 	private static final Logger logger = LoggerFactory.getLogger(MockHttpServer.class);
 
 	public MockHttpServer(String requestHandlerPakcageRoot) {
-		RequestHandler.setRequestHandlerPakcageRoot(requestHandlerPakcageRoot);
+		HttpRequestHandler.setRequestHandlerPakcageRoot(requestHandlerPakcageRoot);
 	}
 
 	public HttpResponse service(HttpRequest httpRequest) {
 
 		HttpResponse response = HttpResponse.createServerDefault(httpRequest.headers().get(HttpHeaders.Names.COOKIE));
 
-		RequestHandler.MatchedCriterion mc = RequestHandler.findRequestHandler(httpRequest.uri().getPath(),
+		HttpRequestHandler.MatchedCriterion mc = HttpRequestHandler.findRequestHandler(httpRequest.uri().getPath(),
 				httpRequest.getMethod().toString());
 
 		if (mc.requestHandlerClass() == null) {
@@ -40,7 +40,7 @@ public class MockHttpServer {
 			try {
 				request = new HttpRequest(httpRequest, mc.pathParameters());
 
-				RequestHandler handler;
+				HttpRequestHandler handler;
 				try {
 					handler = mc.requestHandlerClass().newInstance();
 					handler.initialize(request, response);

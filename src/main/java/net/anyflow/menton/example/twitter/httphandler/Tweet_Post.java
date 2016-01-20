@@ -9,13 +9,13 @@ import net.anyflow.menton.example.twitter.Database;
 import net.anyflow.menton.example.twitter.MessageGenerator;
 import net.anyflow.menton.example.twitter.model.Tweet;
 import net.anyflow.menton.http.HttpConstants.HeaderValues;
-import net.anyflow.menton.http.RequestHandler;
+import net.anyflow.menton.http.HttpRequestHandler;
 
 /**
  * @author Park Hyunjeong
  */
-@RequestHandler.Handles(paths = { "twitter/tweet" }, httpMethods = { "POST" })
-public class Tweet_Post extends RequestHandler {
+@HttpRequestHandler.Handles(paths = { "twitter/tweet" }, httpMethods = { "POST" })
+public class Tweet_Post extends HttpRequestHandler {
 
 	@Override
 	public String service() {

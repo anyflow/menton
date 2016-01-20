@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.security.cert.CertificateException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.json.JSONException;
@@ -154,6 +155,10 @@ public class Settings extends java.util.Properties {
 		}
 
 		return ret;
+	}
+
+	public List<String> websocketSubprotocols() {
+		throw new RuntimeException("not Implemented");
 	}
 
 	public String WebResourcePhysicalRootPath() {

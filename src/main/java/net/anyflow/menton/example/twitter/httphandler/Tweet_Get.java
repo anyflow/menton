@@ -4,13 +4,13 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import net.anyflow.menton.example.twitter.Database;
 import net.anyflow.menton.example.twitter.MessageGenerator;
 import net.anyflow.menton.example.twitter.model.Tweet;
-import net.anyflow.menton.http.RequestHandler;
+import net.anyflow.menton.http.HttpRequestHandler;
 
 /**
  * @author Park Hyunjeong
  */
-@RequestHandler.Handles(paths = { "twitter/tweet/{id}" }, httpMethods = { "GET" })
-public class Tweet_Get extends RequestHandler {
+@HttpRequestHandler.Handles(paths = { "twitter/tweet/{id}" }, httpMethods = { "GET" })
+public class Tweet_Get extends HttpRequestHandler {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Tweet_Get.class);
 
