@@ -43,10 +43,6 @@ class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 					.forServer(Settings.SELF.certChainFile(), Settings.SELF.privateKeyFile()).build();
 
 			logger.debug("SSL Provider : {}", SslContext.defaultServerProvider());
-			logger.debug("Supported Protocols :");
-			for (String item : sslCtx.applicationProtocolNegotiator().protocols()) {
-				logger.debug("	{}", item);
-			}
 
 			ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
 		}
