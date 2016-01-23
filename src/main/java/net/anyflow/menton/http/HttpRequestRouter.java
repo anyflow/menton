@@ -30,8 +30,6 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HttpRequestRouter.class);
 
-	public static final String NAME = "HttpRequestRouter";
-
 	protected HttpRequestRouter() {
 	}
 
@@ -54,18 +52,6 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
-
-		if ("WebSocket".equalsIgnoreCase(request.headers().get("Upgrade"))
-				&& "Upgrade".equalsIgnoreCase(request.headers().get("Connection"))) {
-
-			WebsocketFrameHandler wsfHandler = (WebsocketFrameHandler) ctx.channel().pipeline()
-					.get(WebsocketFrameHandler.NAME);
-			if (wsfHandler == null) { return; }
-
-			wsfHandler.setWebsocketHandshaker(
-					(new DefaultWebSocketHandshaker(Settings.SELF.websocketSubprotocols())).handshake(ctx, request));
-			return;
-		}
 
 		if (HttpHeaders.is100ContinueExpected(request)) {
 			ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));

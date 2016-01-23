@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.security.cert.CertificateException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.json.JSONException;
@@ -133,13 +132,13 @@ public class Settings extends java.util.Properties {
 	}
 
 	public File certChainFile() {
-		String certFilePath = getProperty("menton.httpServer.https.certChainFilePath", null);
+		String certFilePath = getProperty("menton.ssl.certChainFilePath", null);
 
 		return "self".equalsIgnoreCase(certFilePath) ? ssc.certificate() : new File(certFilePath);
 	}
 
 	public File privateKeyFile() {
-		String privateKeyFilePath = getProperty("menton.httpServer.https.privateKeyFilePath", null);
+		String privateKeyFilePath = getProperty("menton.ssl.privateKeyFilePath", null);
 
 		return "self".equalsIgnoreCase(privateKeyFilePath) ? ssc.privateKey() : new File(privateKeyFilePath);
 	}
@@ -155,10 +154,6 @@ public class Settings extends java.util.Properties {
 		}
 
 		return ret;
-	}
-
-	public List<String> websocketSubprotocols() {
-		throw new RuntimeException("not Implemented");
 	}
 
 	public String WebResourcePhysicalRootPath() {

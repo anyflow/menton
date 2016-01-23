@@ -1,45 +1,23 @@
 package net.anyflow.menton.http;
 
+import java.util.List;
+
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 
-public abstract class WebsocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
+public interface WebsocketFrameHandler {
 
-	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(WebsocketFrameHandler.class);
+	public static final List<String> DEFAULT_SUBPROTOCOLS = null;
+	public static final boolean ALLOW_EXTENSIONS = false;
+	public static final int MAX_FRAME_SIZE = 65536;
 
-	public static final String NAME = "WebsocketFrameRouter";
+	public List<String> subprotocols();
 
-	private WebSocketServerHandshaker handshaker = null;
+	public String websocketPath();
 
-	protected abstract void websocketFrameReceived(ChannelHandlerContext ctx, WebSocketFrame wsframe);
+	public boolean allowExtensions();
 
-	@Override
-	protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame wsframe) throws Exception {
-		if (wsframe instanceof CloseWebSocketFrame) {
-			if (handshaker == null) {
-				logger.error("handshaker cannot be null");
-				return;
-			}
+	public int maxFrameSize();
 
-			handshaker.close(ctx.channel(), (CloseWebSocketFrame) wsframe.retain());
-			logger.debug("CloseWebSocketFrame handled.");
-			return;
-		}
-		if (wsframe instanceof PingWebSocketFrame) {
-			ctx.channel().write(new PongWebSocketFrame(wsframe.content().retain()));
-			logger.debug("PingWebSocketFrame handled.");
-			return;
-		}
-
-		websocketFrameReceived(ctx, wsframe);
-	}
-
-	public void setWebsocketHandshaker(WebSocketServerHandshaker handshaker) {
-		this.handshaker = handshaker;
-	}
+	public void websocketFrameReceived(ChannelHandlerContext ctx, WebSocketFrame wsframe);
 }
