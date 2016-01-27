@@ -28,12 +28,6 @@ class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
 	@Override
 	protected void initChannel(SocketChannel ch) throws Exception {
-		// ChannelHandler adding order is 'very' important.
-		// HttpServerHandler should be added last after
-		// outbound handlers in spite of it is inbound
-		// handler.
-		// Otherwise, outbound handlers will not be handled.
-
 		if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writelogOfNettyLogger"))) {
 			ch.pipeline().addLast("log", new LoggingHandler("menton/server", Settings.SELF.logLevel()));
 		}
@@ -48,11 +42,8 @@ class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 		}
 
 		ch.pipeline().addLast(new HttpServerCodec());
-		ch.pipeline().addLast(HttpObjectAggregator.class.getName(), new HttpObjectAggregator(1048576)); // Handle
-																										// HttpChunks.
-		ch.pipeline().addLast(HttpContentCompressor.class.getName(), new HttpContentCompressor()); // Automatic
-																									// content
-																									// compression.
+		ch.pipeline().addLast(HttpObjectAggregator.class.getName(), new HttpObjectAggregator(1048576));
+		ch.pipeline().addLast(HttpContentCompressor.class.getName(), new HttpContentCompressor());
 		ch.pipeline().addLast(HttpRequestRouter.class.getName(), new HttpRequestRouter());
 
 		if (wsfHandler != null) {
