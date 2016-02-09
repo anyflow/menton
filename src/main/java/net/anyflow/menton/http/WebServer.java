@@ -19,14 +19,14 @@ import net.anyflow.menton.general.TaskCompletionListener;
 /**
  * @author anyflow
  */
-public class HttpServer implements TaskCompletionInformer {
+public class WebServer implements TaskCompletionInformer {
 
-	private static final Logger logger = LoggerFactory.getLogger(HttpServer.class);
+	private static final Logger logger = LoggerFactory.getLogger(WebServer.class);
 	private final EventLoopGroup bossGroup;
 	private final EventLoopGroup workerGroup;
 	private final List<TaskCompletionListener> taskCompletionListeners;
 
-	public HttpServer() {
+	public WebServer() {
 		taskCompletionListeners = Lists.newArrayList();
 
 		bossGroup = new NioEventLoopGroup(Settings.SELF.getInt("menton.system.bossThreadCount", 0),
@@ -66,7 +66,7 @@ public class HttpServer implements TaskCompletionInformer {
 				ServerBootstrap bootstrap = new ServerBootstrap();
 
 				bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
-						.childHandler(new HttpServerChannelInitializer(false, websocketFrameHandler));
+						.childHandler(new WebServerChannelInitializer(false, websocketFrameHandler));
 
 				bootstrap.bind(Settings.SELF.httpPort()).sync();
 			}
@@ -75,7 +75,7 @@ public class HttpServer implements TaskCompletionInformer {
 				ServerBootstrap bootstrap = new ServerBootstrap();
 
 				bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
-						.childHandler(new HttpServerChannelInitializer(true, websocketFrameHandler));
+						.childHandler(new WebServerChannelInitializer(true, websocketFrameHandler));
 
 				bootstrap.bind(Settings.SELF.httpsPort()).sync();
 			}

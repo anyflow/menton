@@ -1,7 +1,5 @@
 package net.anyflow.menton.http;
 
-import java.util.List;
-
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpContentCompressor;
@@ -13,17 +11,16 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import net.anyflow.menton.Settings;
 
-class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
+class WebServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory
-			.getLogger(HttpServerChannelInitializer.class);
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(WebServerChannelInitializer.class);
 
 	final boolean useSsl;
-	final WebsocketFrameHandler wsfHandler;
+	final WebsocketFrameHandler websocketFrameHandler;
 
-	public HttpServerChannelInitializer(boolean useSsl, WebsocketFrameHandler websocketFrameHandler) {
+	public WebServerChannelInitializer(boolean useSsl, WebsocketFrameHandler websocketFrameHandler) {
 		this.useSsl = useSsl;
-		this.wsfHandler = websocketFrameHandler;
+		this.websocketFrameHandler = websocketFrameHandler;
 	}
 
 	@Override
@@ -46,25 +43,13 @@ class HttpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 		ch.pipeline().addLast(HttpContentCompressor.class.getName(), new HttpContentCompressor());
 		ch.pipeline().addLast(HttpRequestRouter.class.getName(), new HttpRequestRouter());
 
-		if (wsfHandler != null) {
+		if (websocketFrameHandler != null) {
 			ch.pipeline().addLast(WebSocketServerProtocolHandler.class.getName(),
-					new WebSocketServerProtocolHandler(wsfHandler.websocketPath(),
-							listToCommaSeperatedString(wsfHandler.subprotocols()), wsfHandler.allowExtensions(),
-							wsfHandler.maxFrameSize()));
+					new WebSocketServerProtocolHandler(websocketFrameHandler.websocketPath(),
+							websocketFrameHandler.subprotocols(), websocketFrameHandler.allowExtensions(),
+							websocketFrameHandler.maxFrameSize()));
 
-			ch.pipeline().addLast(new WebsocketFrameRouter(wsfHandler));
+			ch.pipeline().addLast(websocketFrameHandler);
 		}
-	}
-
-	private String listToCommaSeperatedString(List<String> target) {
-		if (target == null) { return null; }
-
-		StringBuilder sb = new StringBuilder();
-		for (String item : target) {
-			sb = sb.append(item).append(",");
-		}
-
-		String ret = sb.toString();
-		return ret.substring(0, ret.length() - 1);
 	}
 }

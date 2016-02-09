@@ -2,7 +2,7 @@ package net.anyflow.menton.example.twitter;
 
 import net.anyflow.menton.Settings;
 import net.anyflow.menton.general.TaskCompletionListener;
-import net.anyflow.menton.http.HttpServer;
+import net.anyflow.menton.http.WebServer;
 
 /**
  * Process entrypoint which contains main function.
@@ -13,7 +13,7 @@ public class Entrypoint implements TaskCompletionListener {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Entrypoint.class);
 
-	private final HttpServer httpServer = new HttpServer();
+	private final WebServer httpServer = new WebServer();
 
 	public void start() {
 
