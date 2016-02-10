@@ -1,5 +1,7 @@
 package net.anyflow.menton.http;
 
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,12 +14,14 @@ import java.net.URISyntaxException;
 import com.google.common.io.Files;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpHeaders.Values;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import net.anyflow.menton.Environment;
@@ -52,6 +56,21 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
+
+		if (Values.WEBSOCKET.equalsIgnoreCase(request.headers().get(Names.UPGRADE))
+				&& Values.UPGRADE.equalsIgnoreCase(request.headers().get(Names.CONNECTION))) {
+
+			if (ctx.pipeline().get(WebsocketFrameHandler.class) == null) {
+				logger.error("No WebSocket Handler available.");
+
+				ctx.channel().writeAndFlush(new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.FORBIDDEN))
+						.addListener(ChannelFutureListener.CLOSE);
+				return;
+			}
+
+			ctx.fireChannelRead(request.retain());
+			return;
+		}
 
 		if (HttpHeaders.is100ContinueExpected(request)) {
 			ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));

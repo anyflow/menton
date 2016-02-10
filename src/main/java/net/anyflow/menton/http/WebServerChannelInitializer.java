@@ -42,6 +42,7 @@ class WebServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 		ch.pipeline().addLast(HttpServerCodec.class.getName(), new HttpServerCodec());
 		ch.pipeline().addLast(HttpObjectAggregator.class.getName(), new HttpObjectAggregator(1048576));
 		ch.pipeline().addLast(HttpContentCompressor.class.getName(), new HttpContentCompressor());
+		ch.pipeline().addLast(HttpRequestRouter.class.getName(), new HttpRequestRouter());
 
 		if (websocketFrameHandlerClass != null) {
 			WebsocketFrameHandler wsfh = websocketFrameHandlerClass.newInstance();
@@ -51,7 +52,5 @@ class WebServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
 			ch.pipeline().addLast(wsfh);
 		}
-
-		ch.pipeline().addLast(HttpRequestRouter.class.getName(), new HttpRequestRouter());
 	}
 }
