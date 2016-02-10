@@ -59,14 +59,15 @@ public class WebServer implements TaskCompletionInformer {
 	 *            websocket handler
 	 * @return the HTTP channel
 	 */
-	public void start(String requestHandlerPakcageRoot, final WebsocketFrameHandler websocketFrameHandler) {
+	public void start(String requestHandlerPakcageRoot,
+			final Class<? extends WebsocketFrameHandler> websocketFrameHandlerClass) {
 		HttpRequestHandler.setRequestHandlerPakcageRoot(requestHandlerPakcageRoot);
 		try {
 			if (Settings.SELF.httpPort() != null) {
 				ServerBootstrap bootstrap = new ServerBootstrap();
 
 				bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
-						.childHandler(new WebServerChannelInitializer(false, websocketFrameHandler));
+						.childHandler(new WebServerChannelInitializer(false, websocketFrameHandlerClass));
 
 				bootstrap.bind(Settings.SELF.httpPort()).sync();
 			}
@@ -75,7 +76,7 @@ public class WebServer implements TaskCompletionInformer {
 				ServerBootstrap bootstrap = new ServerBootstrap();
 
 				bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
-						.childHandler(new WebServerChannelInitializer(true, websocketFrameHandler));
+						.childHandler(new WebServerChannelInitializer(true, websocketFrameHandlerClass));
 
 				bootstrap.bind(Settings.SELF.httpsPort()).sync();
 			}

@@ -16,11 +16,12 @@ class WebServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(WebServerChannelInitializer.class);
 
 	final boolean useSsl;
-	final WebsocketFrameHandler websocketFrameHandler;
+	final Class<? extends WebsocketFrameHandler> websocketFrameHandlerClass;
 
-	public WebServerChannelInitializer(boolean useSsl, WebsocketFrameHandler websocketFrameHandler) {
+	public WebServerChannelInitializer(boolean useSsl,
+			Class<? extends WebsocketFrameHandler> websocketFrameHandlerClass) {
 		this.useSsl = useSsl;
-		this.websocketFrameHandler = websocketFrameHandler;
+		this.websocketFrameHandlerClass = websocketFrameHandlerClass;
 	}
 
 	@Override
@@ -38,18 +39,19 @@ class WebServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 			ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
 		}
 
-		ch.pipeline().addLast(new HttpServerCodec());
+		ch.pipeline().addLast(HttpServerCodec.class.getName(), new HttpServerCodec());
 		ch.pipeline().addLast(HttpObjectAggregator.class.getName(), new HttpObjectAggregator(1048576));
 		ch.pipeline().addLast(HttpContentCompressor.class.getName(), new HttpContentCompressor());
-		ch.pipeline().addLast(HttpRequestRouter.class.getName(), new HttpRequestRouter());
 
-		if (websocketFrameHandler != null) {
-			ch.pipeline().addLast(WebSocketServerProtocolHandler.class.getName(),
-					new WebSocketServerProtocolHandler(websocketFrameHandler.websocketPath(),
-							websocketFrameHandler.subprotocols(), websocketFrameHandler.allowExtensions(),
-							websocketFrameHandler.maxFrameSize()));
+		if (websocketFrameHandlerClass != null) {
+			WebsocketFrameHandler wsfh = websocketFrameHandlerClass.newInstance();
 
-			ch.pipeline().addLast(websocketFrameHandler);
+			ch.pipeline().addLast(WebSocketServerProtocolHandler.class.getName(), new WebSocketServerProtocolHandler(
+					wsfh.websocketPath(), wsfh.subprotocols(), wsfh.allowExtensions(), wsfh.maxFrameSize()));
+
+			ch.pipeline().addLast(wsfh);
 		}
+
+		ch.pipeline().addLast(HttpRequestRouter.class.getName(), new HttpRequestRouter());
 	}
 }
