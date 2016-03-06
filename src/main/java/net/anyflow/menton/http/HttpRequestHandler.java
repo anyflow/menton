@@ -5,14 +5,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.net.URISyntaxException;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.reflections.Reflections;
 
 import com.google.common.collect.Maps;
-import com.google.inject.internal.Lists;
 
 import net.anyflow.menton.Settings;
 
@@ -49,6 +47,8 @@ public abstract class HttpRequestHandler {
 		 * @return http method string
 		 */
 		String[] httpMethods();
+
+		String webResourcePath() default "none";
 	}
 
 	/**
@@ -91,7 +91,8 @@ public abstract class HttpRequestHandler {
 		}
 
 		if (requestHandlerClasses == null) {
-			requestHandlerClasses = (new Reflections(requestHandlerPakcageRoot)).getSubTypesOf(HttpRequestHandler.class);
+			requestHandlerClasses = (new Reflections(requestHandlerPakcageRoot))
+					.getSubTypesOf(HttpRequestHandler.class);
 		}
 
 		for (Class<? extends HttpRequestHandler> item : requestHandlerClasses) {
@@ -157,21 +158,19 @@ public abstract class HttpRequestHandler {
 
 		MatchedCriterion ret = new MatchedCriterion();
 
+		String testTarget = requestedPath + "/" + httpMethod;
+
+		String[] testTokens = testTarget.split("/");
 		String[] criterionTokens = criterion.split("/");
 
-		List<String> testTokens = Lists.newArrayList(requestedPath.split("/"));
-		testTokens.add(httpMethod);
+		if (criterionTokens.length != testTokens.length) { return ret; }
 
-		if (criterionTokens.length != testTokens.size()) { return ret; }
-
-		for (int i = 1; i < criterionTokens.length; ++i) { // should start with
-															// #1 due to item[0]
-															// is whitespace.
+		// should start with #1 due to item[0] is whitespace.
+		for (int i = 1; i < criterionTokens.length; ++i) {
 			if (criterionTokens[i].startsWith("{") && criterionTokens[i].endsWith("}")) {
-				ret.pathParameters.put(criterionTokens[i].substring(1, criterionTokens[i].length() - 1),
-						testTokens.get(i));
+				ret.pathParameters.put(criterionTokens[i].substring(1, criterionTokens[i].length() - 1), testTokens[i]);
 			}
-			else if (criterionTokens[i].equalsIgnoreCase(testTokens.get(i)) == false) { return ret; }
+			else if (criterionTokens[i].equalsIgnoreCase(testTokens[i]) == false) { return ret; }
 		}
 
 		ret.result = true;

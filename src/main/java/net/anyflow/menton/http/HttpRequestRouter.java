@@ -13,7 +13,6 @@ import java.net.URISyntaxException;
 
 import com.google.common.io.Files;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -56,7 +55,6 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
-
 		if (Values.WEBSOCKET.equalsIgnoreCase(request.headers().get(Names.UPGRADE))
 				&& Values.UPGRADE.equalsIgnoreCase(request.headers().get(Names.CONNECTION))) {
 
@@ -82,11 +80,11 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 		String requestPath = new URI(request.getUri()).getPath();
 
 		if (isWebResourcePath(requestPath)) {
-			handleWebResourceRequest(response, requestPath);
+			handleWebResourceRequest(ctx, request, response, requestPath);
 		}
 		else {
 			try {
-				processRequest(ctx.channel(), request, response);
+				processRequest(ctx, request, response);
 			}
 			catch (URISyntaxException e) {
 				response.setStatus(HttpResponseStatus.NOT_FOUND);
@@ -97,14 +95,6 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 				logger.error("Unknown exception was thrown in business logic handler.\r\n" + e.getMessage(), e);
 			}
 		}
-
-		setDefaultHeaders(request, response);
-
-		if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writeHttpResponse"))) {
-			logger.info(response.toString());
-		}
-
-		ctx.write(response);
 	}
 
 	/**
@@ -112,7 +102,8 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 	 * @param webResourceRequestPath
 	 * @throws IOException
 	 */
-	private void handleWebResourceRequest(HttpResponse response, String webResourceRequestPath) throws IOException {
+	private void handleWebResourceRequest(ChannelHandlerContext ctx, FullHttpRequest rawRequest, HttpResponse response,
+			String webResourceRequestPath) throws IOException {
 		InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(webResourceRequestPath);
 
 		if (is == null) {
@@ -146,6 +137,14 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 
 			is.close();
 		}
+
+		setDefaultHeaders(rawRequest, response);
+
+		if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writeHttpResponse"))) {
+			logger.info(response.toString());
+		}
+
+		ctx.write(response);
 	}
 
 	private void setDefaultHeaders(FullHttpRequest request, HttpResponse response) {
@@ -167,7 +166,7 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
 	}
 
-	private void processRequest(Channel channel, FullHttpRequest rawRequest, HttpResponse response)
+	private void processRequest(ChannelHandlerContext ctx, FullHttpRequest rawRequest, HttpResponse response)
 			throws InstantiationException, IllegalAccessException, IOException, URISyntaxException {
 
 		HttpRequestHandler.MatchedCriterion mc = HttpRequestHandler
@@ -186,6 +185,13 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 
 			HttpRequestHandler handler = mc.requestHandlerClass().newInstance();
 
+			String webResourcePath = handler.getClass().getAnnotation(HttpRequestHandler.Handles.class)
+					.webResourcePath();
+			if ("none".equals(webResourcePath) == false) {
+				handleWebResourceRequest(ctx, rawRequest, response, webResourcePath);
+				return;
+			}
+
 			handler.initialize(request, response);
 
 			if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writeHttpRequest"))) {
@@ -194,6 +200,14 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 
 			response.setContent(handler.service());
 		}
+
+		setDefaultHeaders(rawRequest, response);
+
+		if ("true".equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.writeHttpResponse"))) {
+			logger.info(response.toString());
+		}
+
+		ctx.write(response);
 	}
 
 	@Override
