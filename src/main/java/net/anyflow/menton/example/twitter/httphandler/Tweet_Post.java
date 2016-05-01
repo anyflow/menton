@@ -2,7 +2,7 @@ package net.anyflow.menton.example.twitter.httphandler;
 
 import com.jayway.jsonpath.JsonPath;
 
-import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.CharsetUtil;
 import net.anyflow.menton.example.twitter.Database;
@@ -21,7 +21,7 @@ public class Tweet_Post extends HttpRequestHandler {
 	public String service() {
 		String id, message;
 
-		if (HeaderValues.APPLICATION_JSON.equals(httpRequest().headers().get(Names.CONTENT_TYPE))) {
+		if (HeaderValues.APPLICATION_JSON.equals(httpRequest().headers().get(HttpHeaderNames.CONTENT_TYPE))) {
 			String content = httpRequest().content().toString(CharsetUtil.UTF_8);
 
 			id = JsonPath.read(content, "$.id").toString();

@@ -15,8 +15,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.cookie.ClientCookieEncoder;
@@ -36,7 +35,7 @@ public class HttpResponse extends DefaultFullHttpResponse {
 
 		HttpResponse ret = new HttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.buffer());
 
-		ret.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=UTF-8");
+		ret.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json; charset=UTF-8");
 
 		if (requestCookie == null) { return ret; }
 
@@ -45,14 +44,14 @@ public class HttpResponse extends DefaultFullHttpResponse {
 
 		// Reset the cookies if necessary.
 		for (Cookie cookie : cookies) {
-			ret.headers().add(HttpHeaders.Names.SET_COOKIE, ClientCookieEncoder.STRICT.encode(cookie));
+			ret.headers().add(HttpHeaderNames.SET_COOKIE, ClientCookieEncoder.STRICT.encode(cookie));
 		}
 
 		return ret;
 	}
 
 	public static HttpResponse createFrom(FullHttpResponse source, Channel channel) {
-		HttpResponse ret = new HttpResponse(source.getProtocolVersion(), source.getStatus(), source.content().copy());
+		HttpResponse ret = new HttpResponse(source.protocolVersion(), source.status(), source.content().copy());
 
 		ret.headers().set(source.headers());
 		ret.trailingHeaders().set(source.trailingHeaders());
@@ -82,8 +81,8 @@ public class HttpResponse extends DefaultFullHttpResponse {
 		StringBuilder buf = new StringBuilder();
 
 		buf.append("\r\n");
-		buf.append("HTTP Status: " + this.getStatus()).append("\r\n");
-		buf.append("Version: " + this.getProtocolVersion()).append("\r\n");
+		buf.append("HTTP Status: " + this.status()).append("\r\n");
+		buf.append("Version: " + this.protocolVersion()).append("\r\n");
 		buf.append("Response Headers: ").append("\r\n");
 
 		if (!this.headers().isEmpty()) {
@@ -94,9 +93,10 @@ public class HttpResponse extends DefaultFullHttpResponse {
 			}
 		}
 
-		if ("false"
-				.equalsIgnoreCase(Settings.SELF.getProperty("menton.logging.logWebResourceHttpResponseContent", "false"))
-				&& Settings.SELF.webResourceExtensionToMimes().containsValue(headers().get(Names.CONTENT_TYPE))) {
+		if ("false".equalsIgnoreCase(
+				Settings.SELF.getProperty("menton.logging.logWebResourceHttpResponseContent", "false"))
+				&& Settings.SELF.webResourceExtensionToMimes()
+						.containsValue(headers().get(HttpHeaderNames.CONTENT_TYPE))) {
 			buf.append("Content: WEB RESOURCE CONTENT");
 			return buf.toString();
 		}

@@ -18,10 +18,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpHeaders.Names;
-import io.netty.handler.codec.http.HttpHeaders.Values;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import net.anyflow.menton.Environment;
 import net.anyflow.menton.Settings;
@@ -55,8 +55,9 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
-		if (Values.WEBSOCKET.equalsIgnoreCase(request.headers().get(Names.UPGRADE))
-				&& Values.UPGRADE.equalsIgnoreCase(request.headers().get(Names.CONNECTION))) {
+		if (HttpHeaderValues.WEBSOCKET.toString().equalsIgnoreCase(request.headers().get(HttpHeaderNames.UPGRADE))
+				&& HttpHeaderValues.UPGRADE.toString()
+						.equalsIgnoreCase(request.headers().get(HttpHeaderNames.CONNECTION))) {
 
 			if (ctx.pipeline().get(WebsocketFrameHandler.class) == null) {
 				logger.error("No WebSocket Handler available.");
@@ -70,14 +71,14 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 			return;
 		}
 
-		if (HttpHeaders.is100ContinueExpected(request)) {
+		if (HttpUtil.is100ContinueExpected(request)) {
 			ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));
 			return;
 		}
 
-		HttpResponse response = HttpResponse.createServerDefault(request.headers().get(HttpHeaders.Names.COOKIE));
+		HttpResponse response = HttpResponse.createServerDefault(request.headers().get(HttpHeaderNames.COOKIE));
 
-		String requestPath = new URI(request.getUri()).getPath();
+		String requestPath = new URI(request.uri()).getPath();
 
 		if (isWebResourcePath(requestPath)) {
 			handleWebResourceRequest(ctx, request, response, requestPath);
@@ -88,7 +89,7 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 			}
 			catch (URISyntaxException e) {
 				response.setStatus(HttpResponseStatus.NOT_FOUND);
-				logger.info("unexcepted URI : {}", request.getUri());
+				logger.info("unexcepted URI : {}", request.uri());
 			}
 			catch (Exception e) {
 				response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
@@ -133,7 +134,7 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 			response.content().writeBytes(buffer.toByteArray());
 
 			String ext = Files.getFileExtension(webResourceRequestPath);
-			response.headers().set(Names.CONTENT_TYPE, Settings.SELF.webResourceExtensionToMimes().get(ext));
+			response.headers().set(HttpHeaderNames.CONTENT_TYPE, Settings.SELF.webResourceExtensionToMimes().get(ext));
 
 			is.close();
 		}
@@ -149,36 +150,37 @@ public class HttpRequestRouter extends SimpleChannelInboundHandler<FullHttpReque
 
 	private void setDefaultHeaders(FullHttpRequest request, HttpResponse response) {
 
-		response.headers().add(Names.SERVER, Environment.PROJECT_ARTIFACT_ID + " " + Environment.PROJECT_VERSION);
+		response.headers().add(HttpHeaderNames.SERVER,
+				Environment.PROJECT_ARTIFACT_ID + " " + Environment.PROJECT_VERSION);
 
-		boolean keepAlive = request.headers().get(HttpHeaders.Names.CONNECTION) == HttpHeaders.Values.KEEP_ALIVE;
+		boolean keepAlive = request.headers().get(HttpHeaderNames.CONNECTION) == HttpHeaderValues.KEEP_ALIVE.toString();
 		if (keepAlive) {
-			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+			response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 		}
 
 		if (Settings.SELF.getProperty("menton.httpServer.allowCrossDomain", "false").equalsIgnoreCase("true")) {
-			response.headers().add(Names.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, PUT, DELETE");
-			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
-			response.headers().add(Names.ACCESS_CONTROL_MAX_AGE, "1728000");
+			response.headers().add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+			response.headers().add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, PUT, DELETE");
+			response.headers().add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
+			response.headers().add(HttpHeaderNames.ACCESS_CONTROL_MAX_AGE, "1728000");
 		}
 
-		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
+		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
 	}
 
 	private void processRequest(ChannelHandlerContext ctx, FullHttpRequest rawRequest, HttpResponse response)
 			throws InstantiationException, IllegalAccessException, IOException, URISyntaxException {
 
 		HttpRequestHandler.MatchedCriterion mc = HttpRequestHandler
-				.findRequestHandler((new URI(rawRequest.getUri())).getPath(), rawRequest.getMethod().toString());
+				.findRequestHandler((new URI(rawRequest.uri())).getPath(), rawRequest.method().toString());
 
 		if (mc.requestHandlerClass() == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
-			logger.info("unexcepted URI : {}", rawRequest.getUri());
+			logger.info("unexcepted URI : {}", rawRequest.uri());
 
-			response.headers().add(Names.CONTENT_TYPE, "text/html");
+			response.headers().add(HttpHeaderNames.CONTENT_TYPE, "text/html");
 
-			response.setContent(HtmlGenerator.error(Literals.FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus()));
+			response.setContent(HtmlGenerator.error(Literals.FAILED_TO_FIND_REQUEST_HANDLER, response.status()));
 		}
 		else {
 			HttpRequest request = new HttpRequest(rawRequest, mc.pathParameters());

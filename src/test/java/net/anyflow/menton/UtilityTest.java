@@ -31,7 +31,7 @@ public class UtilityTest {
 	 */
 	@BeforeClass
 	public static void setUp() {
-		if(!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
+		if (!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
 			BasicConfigurator.configure();
 		}
 	}
@@ -58,7 +58,7 @@ public class UtilityTest {
 		String uriString = "http://10.0.0.1/getporttest";
 		IHttpClient client = new HttpClient(uriString);
 
-		assertThat(client.httpRequest().uri().getPort(), is(80));
+		assertThat(client.httpRequest().uriObject().getPort(), is(80));
 	}
 
 	@Test
@@ -67,7 +67,7 @@ public class UtilityTest {
 		String uriString = "http://10.0.0.1/getporttest";
 		IHttpClient client = new HttpClient(uriString);
 
-		assertThat(client.httpRequest().uri().getPort(), is(80));
+		assertThat(client.httpRequest().uriObject().getPort(), is(80));
 	}
 
 	@Test
@@ -86,7 +86,7 @@ public class UtilityTest {
 
 		String[] tokens = testString.split("\\{\\w+\\}");
 
-		for(int i = 0; i < tokens.length; ++i)
+		for (int i = 0; i < tokens.length; ++i)
 			System.out.println(tokens[i]);
 
 		assertThat(tokens[0], is("/session/"));

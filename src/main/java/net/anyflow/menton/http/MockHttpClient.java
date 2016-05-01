@@ -7,7 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 
@@ -22,7 +23,7 @@ public class MockHttpClient implements IHttpClient {
 		this.httpRequest = new HttpRequest(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri));
 		this.mockServer = mockServer;
 
-		if (httpRequest().uri().getScheme().equalsIgnoreCase("http") == false) {
+		if (httpRequest().uriObject().getScheme().equalsIgnoreCase("http") == false) {
 			String message = "HTTP is supported only.";
 			logger.error(message);
 			throw new UnsupportedOperationException(message);
@@ -164,22 +165,22 @@ public class MockHttpClient implements IHttpClient {
 	}
 
 	private void setDefaultHeaders() {
-		if (httpRequest().headers().contains(HttpHeaders.Names.HOST) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.HOST, httpRequest().uri().getHost());
+		if (httpRequest().headers().contains(HttpHeaderNames.HOST) == false) {
+			httpRequest().headers().set(HttpHeaderNames.HOST, httpRequest().uriObject().getHost());
 		}
-		if (httpRequest().headers().contains(HttpHeaders.Names.CONNECTION) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+		if (httpRequest().headers().contains(HttpHeaderNames.CONNECTION) == false) {
+			httpRequest().headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 		}
-		if (httpRequest().headers().contains(HttpHeaders.Names.ACCEPT_ENCODING) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.ACCEPT_ENCODING,
-					HttpHeaders.Values.GZIP + ", " + HttpHeaders.Values.DEFLATE);
+		if (httpRequest().headers().contains(HttpHeaderNames.ACCEPT_ENCODING) == false) {
+			httpRequest().headers().set(HttpHeaderNames.ACCEPT_ENCODING,
+					HttpHeaderValues.GZIP + ", " + HttpHeaderValues.DEFLATE);
 		}
-		if (httpRequest().headers().contains(HttpHeaders.Names.ACCEPT_CHARSET) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.ACCEPT_CHARSET, "utf-8");
+		if (httpRequest().headers().contains(HttpHeaderNames.ACCEPT_CHARSET) == false) {
+			httpRequest().headers().set(HttpHeaderNames.ACCEPT_CHARSET, "utf-8");
 		}
-		if (httpRequest().headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false) {
-			httpRequest().headers().set(HttpHeaders.Names.CONTENT_TYPE,
-					HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED);
+		if (httpRequest().headers().contains(HttpHeaderNames.CONTENT_TYPE) == false) {
+			httpRequest().headers().set(HttpHeaderNames.CONTENT_TYPE,
+					HttpHeaderValues.APPLICATION_X_WWW_FORM_URLENCODED);
 		}
 	}
 }

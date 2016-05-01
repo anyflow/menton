@@ -24,7 +24,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.DecoderResult;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.cookie.ClientCookieEncoder;
@@ -50,13 +51,13 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 	protected HttpRequest(FullHttpRequest fullHttpRequest, Map<String, String> pathParameters)
 			throws URISyntaxException {
-		super(fullHttpRequest.getProtocolVersion(), fullHttpRequest.getMethod(), fullHttpRequest.getUri(),
+		super(fullHttpRequest.protocolVersion(), fullHttpRequest.method(), fullHttpRequest.uri(),
 				fullHttpRequest.content().copy());
 
 		this.headers().set(fullHttpRequest.headers());
 		this.trailingHeaders().set(fullHttpRequest.trailingHeaders());
-		this.setDecoderResult(fullHttpRequest.getDecoderResult());
-		this.uri = createUriWithNormalizing(fullHttpRequest.getUri());
+		this.setDecoderResult(fullHttpRequest.decoderResult());
+		this.uri = createUriWithNormalizing(fullHttpRequest.uri());
 
 		this.parameters = parameters();
 		this.cookies = cookies();
@@ -91,7 +92,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	public Set<Cookie> cookies() {
 		if (cookies != null) { return cookies; }
 
-		String cookie = headers().get(HttpHeaders.Names.COOKIE);
+		String cookie = headers().get(HttpHeaderNames.COOKIE);
 		if (cookie == null || "".equals(cookie)) { return new HashSet<Cookie>(); }
 
 		Set<Cookie> ret = ServerCookieDecoder.STRICT.decode(cookie);
@@ -113,14 +114,14 @@ public class HttpRequest extends DefaultFullHttpRequest {
 
 		Map<String, List<String>> ret = Maps.newHashMap();
 
-		if (HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
-			ret.putAll((new QueryStringDecoder(getUri())).parameters());
+		if (HttpMethod.GET.equals(method()) || HttpMethod.DELETE.equals(method())) {
+			ret.putAll((new QueryStringDecoder(uri())).parameters());
 			return ret;
 		}
-		else if (headers().contains(HttpHeaders.Names.CONTENT_TYPE)
-				&& headers().get(HttpHeaders.Names.CONTENT_TYPE)
-						.startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)
-				&& (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod()))) {
+		else if (headers().contains(HttpHeaderNames.CONTENT_TYPE)
+				&& headers().get(HttpHeaderNames.CONTENT_TYPE)
+						.startsWith(HttpHeaderValues.APPLICATION_X_WWW_FORM_URLENCODED.toString())
+				&& (HttpMethod.POST.equals(method()) || HttpMethod.PUT.equals(method()))) {
 
 			ret.putAll((new QueryStringDecoder("/dummy?" + content().toString(CharsetUtil.UTF_8))).parameters());
 		}
@@ -166,9 +167,9 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		StringBuilder buf = new StringBuilder();
 
 		buf.append("\r\n");
-		buf.append("Request URI: ").append(this.getUri()).append("\r\n");
-		buf.append("HTTP METHOD: ").append(this.getMethod().toString()).append("\r\n");
-		buf.append("Version: ").append(this.getProtocolVersion()).append("\r\n");
+		buf.append("Request URI: ").append(this.uri()).append("\r\n");
+		buf.append("HTTP METHOD: ").append(this.method().toString()).append("\r\n");
+		buf.append("Version: ").append(this.protocolVersion()).append("\r\n");
 		buf.append("Request Headers:").append("\r\n");
 
 		List<Entry<String, String>> headers = this.headers().entries();
@@ -205,7 +206,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 			buf.append("UNREADABLE CONTENT or NONE");
 		}
 
-		DecoderResult result = this.getDecoderResult();
+		DecoderResult result = this.decoderResult();
 
 		if (result.isSuccess() == false) {
 			buf.append("\r\n").append(".. WITH DECODER FAILURE:");
@@ -216,17 +217,15 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	}
 
 	public void setContent(String content) {
-		if (content == null) {
-			content = "";
-		}
+		content = Strings.nullToEmpty(content);
 
 		byte[] contentByte = content.getBytes(CharsetUtil.UTF_8);
-		headers().set(HttpHeaders.Names.CONTENT_LENGTH, contentByte.length);
+		headers().set(HttpHeaderNames.CONTENT_LENGTH, contentByte.length);
 		content().writeBytes(contentByte);
 		logger.debug(content().toString(CharsetUtil.UTF_8));
 	}
 
-	public URI uri() {
+	public URI uriObject() {
 		return uri;
 	}
 
@@ -236,7 +235,7 @@ public class HttpRequest extends DefaultFullHttpRequest {
 		String encoded = ClientCookieEncoder.STRICT.encode(cookies);
 		if (encoded == null) { return; }
 
-		headers().set(HttpHeaders.Names.COOKIE, encoded);
+		headers().set(HttpHeaderNames.COOKIE, encoded);
 	}
 
 	private String convertParametersToString() {
@@ -262,20 +261,19 @@ public class HttpRequest extends DefaultFullHttpRequest {
 	}
 
 	private void normalizeParameters() {
-		String address = (new StringBuilder()).append(uri().getScheme()).append("://").append(uri().getAuthority())
-				.append(uri().getPath()).toString();
+		String address = (new StringBuilder()).append(uriObject().getScheme()).append("://")
+				.append(uriObject().getAuthority()).append(uriObject().getPath()).toString();
 
-		if (HttpMethod.GET.equals(getMethod()) || HttpMethod.DELETE.equals(getMethod())) {
+		if (HttpMethod.GET.equals(method()) || HttpMethod.DELETE.equals(method())) {
 			String parameters = convertParametersToString();
 			address += Strings.isNullOrEmpty(parameters) ? "" : "?" + parameters;
 		}
-		else if (HttpMethod.POST.equals(getMethod()) || HttpMethod.PUT.equals(getMethod())) {
-			if (headers().contains(HttpHeaders.Names.CONTENT_TYPE) == false
-					|| headers().get(HttpHeaders.Names.CONTENT_TYPE)
-							.startsWith(HttpHeaders.Values.APPLICATION_X_WWW_FORM_URLENCODED)) {
+		else if (HttpMethod.POST.equals(method()) || HttpMethod.PUT.equals(method())) {
+			if (headers().contains(HttpHeaderNames.CONTENT_TYPE) == false || headers().get(HttpHeaderNames.CONTENT_TYPE)
+					.startsWith(HttpHeaderValues.APPLICATION_X_WWW_FORM_URLENCODED.toString())) {
 				ByteBuf content = Unpooled.copiedBuffer(convertParametersToString(), CharsetUtil.UTF_8);
 
-				headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes());
+				headers().set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
 				content().clear();
 				content().writeBytes(content);
 			}

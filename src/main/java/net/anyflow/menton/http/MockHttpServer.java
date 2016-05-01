@@ -6,11 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import net.anyflow.menton.Settings;
 import net.anyflow.menton.Environment;
+import net.anyflow.menton.Settings;
 
 public class MockHttpServer {
 
@@ -22,18 +22,18 @@ public class MockHttpServer {
 
 	public HttpResponse service(HttpRequest httpRequest) {
 
-		HttpResponse response = HttpResponse.createServerDefault(httpRequest.headers().get(HttpHeaders.Names.COOKIE));
+		HttpResponse response = HttpResponse.createServerDefault(httpRequest.headers().get(HttpHeaderNames.COOKIE));
 
-		HttpRequestHandler.MatchedCriterion mc = HttpRequestHandler.findRequestHandler(httpRequest.uri().getPath(),
-				httpRequest.getMethod().toString());
+		HttpRequestHandler.MatchedCriterion mc = HttpRequestHandler
+				.findRequestHandler(httpRequest.uriObject().getPath(), httpRequest.method().toString());
 
 		if (mc.requestHandlerClass() == null) {
 			response.setStatus(HttpResponseStatus.NOT_FOUND);
-			logger.info("unexcepted URI : {}", httpRequest.getUri());
+			logger.info("unexcepted URI : {}", httpRequest.uri());
 
-			response.headers().add(Names.CONTENT_TYPE, "text/html");
+			response.headers().add(HttpHeaderNames.CONTENT_TYPE, "text/html");
 
-			response.setContent(HtmlGenerator.error(Literals.FAILED_TO_FIND_REQUEST_HANDLER, response.getStatus()));
+			response.setContent(HtmlGenerator.error(Literals.FAILED_TO_FIND_REQUEST_HANDLER, response.status()));
 		}
 		else {
 			HttpRequest request;
@@ -77,20 +77,21 @@ public class MockHttpServer {
 
 	private void setDefaultHeaders(FullHttpRequest request, HttpResponse response) {
 
-		response.headers().add(Names.SERVER, Environment.PROJECT_ARTIFACT_ID + " " + Environment.PROJECT_VERSION);
+		response.headers().add(HttpHeaderNames.SERVER,
+				Environment.PROJECT_ARTIFACT_ID + " " + Environment.PROJECT_VERSION);
 
-		boolean keepAlive = request.headers().get(HttpHeaders.Names.CONNECTION) == HttpHeaders.Values.KEEP_ALIVE;
+		boolean keepAlive = request.headers().get(HttpHeaderNames.CONNECTION) == HttpHeaderValues.KEEP_ALIVE.toString();
 		if (keepAlive) {
-			response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+			response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 		}
 
 		if (Settings.SELF.getProperty("menton.httpServer.allowCrossDomain", "false").equalsIgnoreCase("true")) {
-			response.headers().add(Names.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-			response.headers().add(Names.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, PUT, DELETE");
-			response.headers().add(Names.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
-			response.headers().add(Names.ACCESS_CONTROL_MAX_AGE, "1728000");
+			response.headers().add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+			response.headers().add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, PUT, DELETE");
+			response.headers().add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_HEADERS, "X-PINGARUNER");
+			response.headers().add(HttpHeaderNames.ACCESS_CONTROL_MAX_AGE, "1728000");
 		}
 
-		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes());
+		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
 	}
 }

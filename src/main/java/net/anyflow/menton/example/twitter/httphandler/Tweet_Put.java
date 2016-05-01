@@ -7,7 +7,7 @@ import org.json.JSONObject;
 
 import com.jayway.jsonpath.JsonPath;
 
-import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.CharsetUtil;
 import net.anyflow.menton.example.twitter.Database;
@@ -26,7 +26,7 @@ public class Tweet_Put extends HttpRequestHandler {
 	public String service() {
 		String message;
 
-		if (HeaderValues.APPLICATION_JSON.equals(httpRequest().headers().get(Names.CONTENT_TYPE))) {
+		if (HeaderValues.APPLICATION_JSON.equals(httpRequest().headers().get(HttpHeaderNames.CONTENT_TYPE))) {
 			String content = httpRequest().content().toString(CharsetUtil.UTF_8);
 			message = JsonPath.read(content, "$.message").toString();
 		}
